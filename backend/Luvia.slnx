@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Luvia.Application/Luvia.Application.csproj" />
+  <Project Path="Luvia.Domain/Luvia.Domain.csproj" />
+  <Project Path="Luvia.Infrastructure/Luvia.Infrastructure.csproj" />
+  <Project Path="Luvia.WebApi/Luvia.WebApi.csproj" />
+</Solution>

@@ -1,0 +1,24 @@
+﻿# ── .NET ──
+bin/
+obj/
+*.user
+appsettings.Development.json
+
+# ── Python ──
+venv/
+__pycache__/
+*.pyc
+.env
+
+# ── Model/veri cache ──
+*.onnx
+.cache/
+
+# ── IDE ──
+.vs/
+.idea/
+.vscode/
+
+# ── OS ──
+Thumbs.db
+.DS_Store

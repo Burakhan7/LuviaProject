@@ -1,0 +1,29 @@
+# ── .NET ──
+[Bb]in/
+[Oo]bj/
+*.user
+appsettings.Development.json
+
+# ── Python ──
+venv/
+__pycache__/
+*.pyc
+.env
+
+# ── Model / cache ──
+*.onnx
+.cache/
+
+# ── IDE ──
+.vs/
+.idea/
+.vscode/
+
+# ── OS ──
+Thumbs.db
+.DS_Store
+
+# ── Test artıkları ──
+istek.json
+istek-py.json
+*_rembg.png
