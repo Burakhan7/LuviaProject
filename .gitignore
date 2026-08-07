@@ -27,3 +27,8 @@ Thumbs.db
 istek.json
 istek-py.json
 *_rembg.png
+
+# ── Firebase gizli anahtarı (ASLA commit'lenmemeli) ──
+firebase-key.json
+cv-service/firebase-key.json
+*serviceaccount*.json
