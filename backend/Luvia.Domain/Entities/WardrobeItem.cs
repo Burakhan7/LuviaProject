@@ -32,6 +32,12 @@ public class WardrobeItem
     public bool NeedsReview { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
+    public bool IsAvailable { get; private set; } = true;
+
+    public void SetAvailability(bool available)
+    {
+        IsAvailable = available;
+    }
 
     // EF Core parametresiz ctor ister; dışarıya kapalı
     private WardrobeItem() { }

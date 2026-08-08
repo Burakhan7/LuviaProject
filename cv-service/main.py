@@ -13,6 +13,8 @@ import firebase_admin
 from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
 import torch.nn.functional as F
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+import time
 from scipy import ndimage
 from firebase_admin import credentials, storage
 from rembg import remove
@@ -298,20 +300,18 @@ def cutout_from_mask(img, mask, pad=6):
 
 
 def analyze_part_image(cutout, category_from_seg, kind):
-    """Bir segment kesimini analiz eder, tek foto ile aynı formatta sonuç üretir."""
-    # beyaz zemine oturt (FashionCLIP beyaz sever)
+    """Segment kesimini analiz eder. YÜKLEME YAPMAZ — cutout'u da döndürür (sonra paralel yüklenir)."""
     white = Image.new("RGB", cutout.size, (255, 255, 255))
     white.paste(cutout, mask=cutout.split()[-1])
 
     category, _, cat_low = classify(white, CATEGORY)
     result = {"category": category, "color": dominant_color(white)}
-        # Sadece dış-giyim türü parçalarda katman tespiti (ceket/mont/hırka/blazer)
+
     OUTERWEAR = {"Jacket", "Coat", "Cardigan", "Blazer"}
     if category in OUTERWEAR:
         result["isLayered"] = detect_layering(white)
-        
-    low_fields = ["Category"] if cat_low else []
 
+    low_fields = ["Category"] if cat_low else []
     for field, group in PART_ATTRS[kind_for(category)]:
         label, _, low = classify(white, group)
         key = field[0].lower() + field[1:]
@@ -320,12 +320,8 @@ def analyze_part_image(cutout, category_from_seg, kind):
             low_fields.append(field)
 
     result["lowConfidenceFields"] = low_fields
-    try:
-        result["processedImageUrl"] = upload_to_storage(cutout)
-    except Exception as e:
-        print(f">>> Parça yükleme hatası: {e}")
-        result["processedImageUrl"] = None
-    return result
+    result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
+    return result, cutout   # ← cutout'u da döndür
 
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
@@ -333,13 +329,17 @@ class FullbodyResponse(BaseModel):
 
 @app.post("/analyze-fullbody", response_model=FullbodyResponse)
 def analyze_fullbody(req: AnalyzeRequest):
+    t0 = time.time()
     img = download_image(req.imageUrl)
+    t_download = time.time()
+
     seg = segment(img)
     min_px = int(MIN_PART_FRAC * seg.shape[0] * seg.shape[1])
+    t_segment = time.time()
 
-    items = []
+    # ── AŞAMA 1: Tüm parçaları SIRALI analiz et (yükleme yok), cutout'ları biriktir ──
+    results = []   # (result_dict, cutout) listesi
 
-    # Tek sınıflı parçalar (üst, alt, etek, elbise, şapka, çanta)
     for cid, (label, _, kind) in SEG_PLAN.items():
         mask = (seg == cid)
         if mask.sum() < min_px:
@@ -348,15 +348,41 @@ def analyze_fullbody(req: AnalyzeRequest):
         if cutout is None:
             continue
         print(f">>> Parça bulundu: {label}")
-        items.append(AnalyzeResponse(**analyze_part_image(cutout, label, kind)))
+        results.append(analyze_part_image(cutout, label, kind))
 
-    # Ayakkabılar (sol+sağ birleşik)
     shoe_mask = np.isin(seg, SHOE_IDS)
     if shoe_mask.sum() >= min_px:
         cutout = cutout_from_mask(img, shoe_mask)
         if cutout is not None:
             print(">>> Parça bulundu: Shoes")
-            items.append(AnalyzeResponse(**analyze_part_image(cutout, "Shoes", "shoes")))
+            results.append(analyze_part_image(cutout, "Shoes", "shoes"))
+
+    t_analyze = time.time()
+
+    # ── AŞAMA 2: Tüm görselleri PARALEL yükle ──
+    def upload_one(cutout):
+        try:
+            return upload_to_storage(cutout)
+        except Exception as e:
+            print(f">>> Parça yükleme hatası: {e}")
+            return None
+
+    cutouts = [c for (_, c) in results]
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        urls = list(executor.map(upload_one, cutouts))
+
+    # URL'leri sonuçlara yaz
+    items = []
+    for (result, _), url in zip(results, urls):
+        result["processedImageUrl"] = url
+        items.append(AnalyzeResponse(**result))
+
+    t_upload = time.time()
+
+    # ── ÖLÇÜM ──
+    print(f">>> SÜRELER: indir={t_download-t0:.1f}s  segment={t_segment-t_download:.1f}s  "
+          f"analiz={t_analyze-t_segment:.1f}s  yükle(paralel)={t_upload-t_analyze:.1f}s  "
+          f"TOPLAM={t_upload-t0:.1f}s  ({len(items)} parça)")
 
     return FullbodyResponse(items=items)
 
@@ -365,3 +391,25 @@ def detect_layering(img) -> bool:
     label, p1, low = classify(img, LAYERING)
     # 'layered' belirgin şekilde öndeyse katmanlı say (kararsızsa güvenli tarafta: değil)
     return label == "layered" and not low
+
+class DeleteImageRequest(BaseModel):
+    imageUrl: str
+
+@app.post("/delete-image")
+def delete_image(req: DeleteImageRequest):
+    """processed/ altındaki bir görseli Storage'dan siler."""
+    try:
+        # İmzalı URL'den blob yolunu çıkar: .../processed/<uuid>.png?...
+        from urllib.parse import urlparse, unquote
+        path = urlparse(req.imageUrl).path          # /kombinv1.../processed/xxx.png
+        # bucket adından sonrasını al
+        if "/processed/" in path:
+            blob_path = "processed/" + path.split("/processed/")[1]
+            blob = _bucket.blob(blob_path)
+            blob.delete()
+            print(f">>> Silindi: {blob_path}")
+            return {"deleted": True}
+        return {"deleted": False, "reason": "processed/ yolu bulunamadı"}
+    except Exception as e:
+        print(f">>> Görsel silme hatası: {e}")
+        return {"deleted": False, "reason": str(e)}    

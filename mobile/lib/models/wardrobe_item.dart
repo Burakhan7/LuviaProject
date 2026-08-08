@@ -10,6 +10,7 @@ class WardrobeItem {
   final String? season;
   final bool isLayered;
   final bool needsReview;
+  final bool isAvailable;
 
   WardrobeItem({
     required this.id,
@@ -22,6 +23,7 @@ class WardrobeItem {
     this.season,
     this.isLayered = false,
     this.needsReview = false,
+    this.isAvailable = true,
   });
 
   factory WardrobeItem.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,7 @@ class WardrobeItem {
       season: json['season'],
       isLayered: json['isLayered'] ?? false,
       needsReview: json['needsReview'] ?? false,
+      isAvailable: json['isAvailable'] ?? true,
     );
   }
 }

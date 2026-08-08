@@ -47,4 +47,5 @@ public class MockAnalysisService : IImageAnalysisService
         var single = await AnalyzeAsync(imageUrl, ct);
         return new List<ImageAnalysisResult> { single };
     }
+    public Task DeleteImageAsync(string imageUrl, CancellationToken ct = default) => Task.CompletedTask;
 }

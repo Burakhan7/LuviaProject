@@ -26,4 +26,9 @@ public class InMemoryWardrobeItemRepository : IWardrobeItemRepository
 
     public Task SaveChangesAsync(CancellationToken ct = default)
         => Task.CompletedTask;   // bellekte SaveChanges no-op; EF Core'da gerçek olacak
+    public Task DeleteAsync(WardrobeItem item, CancellationToken ct = default)
+    {
+        _items.Remove(item);
+        return Task.CompletedTask;
+    }
 }

@@ -73,6 +73,42 @@ app.MapGet("/wardrobe/items/{userId}", async (
     return Results.Ok(items);
 });
 
+app.MapDelete("/wardrobe/items/{id}", async (
+    Guid id,
+    IWardrobeItemRepository repo,
+    IImageAnalysisService analysis,        // ← eklendi
+    CancellationToken ct) =>
+{
+    var item = await repo.GetByIdAsync(id, ct);
+    if (item is null)
+        return Results.NotFound();
+
+    // Önce işlenmiş görseli Storage'dan sil (best-effort)
+    if (!string.IsNullOrEmpty(item.ProcessedImageUrl))
+    {
+        await analysis.DeleteImageAsync(item.ProcessedImageUrl, ct);
+    }
+
+    // Sonra DB kaydını sil
+    await repo.DeleteAsync(item, ct);
+    await repo.SaveChangesAsync(ct);
+    return Results.Ok();
+});
+// ── Endpoint: müsaitlik durumunu değiştir ──
+app.MapPatch("/wardrobe/items/{id}/availability", async (
+    Guid id,
+    AvailabilityRequest body,
+    IWardrobeItemRepository repo,
+    CancellationToken ct) =>
+{
+    var item = await repo.GetByIdAsync(id, ct);
+    if (item is null) return Results.NotFound();
+
+    item.SetAvailability(body.IsAvailable);
+    await repo.SaveChangesAsync(ct);
+    return Results.Ok();
+});
+
 app.MapGet("/outfits/{userId}", async (
     string userId,
     Season season,
@@ -89,7 +125,14 @@ app.MapGet("/outfits/{userId}", async (
     var response = outfits.Select(o => new
     {
         score = Math.Round(o.Score, 2),
-        items = o.Items.Select(i => new { i.Category, i.Color, i.Style }),
+        items = o.Items.Select(i => new {
+            i.Category,
+            i.Color,
+            i.Style,
+            i.Kind,
+            i.ProcessedImageUrl,     // ← YENİ: görsel için
+            i.IsLayered
+        }),
         reasons = o.Reasons
     });
 

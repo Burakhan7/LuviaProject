@@ -26,4 +26,9 @@ public class EfWardrobeItemRepository : IWardrobeItemRepository
 
     public async Task SaveChangesAsync(CancellationToken ct = default)
         => await _db.SaveChangesAsync(ct);
+    public Task DeleteAsync(WardrobeItem item, CancellationToken ct = default)
+    {
+        _db.WardrobeItems.Remove(item);
+        return Task.CompletedTask;
+    }
 }

@@ -14,6 +14,7 @@ public class RuleBasedRecommender : IOutfitRecommender
         OutfitContext context,
         int maxResults = 5)
     {
+        wardrobe = wardrobe.Where(i => i.IsAvailable).ToList();
         // ── AŞAMA 1: Slot'lara ayır ──
         var tops = wardrobe.Where(i => i.Kind == ItemKind.Clothing && IsTop(i.Category)).ToList();
         var bottoms = wardrobe.Where(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category)).ToList();
@@ -21,6 +22,7 @@ public class RuleBasedRecommender : IOutfitRecommender
         var shoes = wardrobe.Where(i => i.Kind == ItemKind.Shoes).ToList();
 
         var candidates = new List<Outfit>();
+
 
         // ── Aday kombinler üret (üst + alt + ayakkabı) ──
         foreach (var top in tops)

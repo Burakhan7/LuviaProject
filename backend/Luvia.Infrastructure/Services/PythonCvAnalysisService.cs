@@ -63,4 +63,16 @@ public class PythonCvAnalysisService : IImageAnalysisService
     {
         public List<ImageAnalysisResult> Items { get; set; } = new();
     }
+    public async Task DeleteImageAsync(string imageUrl, CancellationToken ct = default)
+    {
+        try
+        {
+            await _http.PostAsJsonAsync("/delete-image", new { imageUrl }, ct);
+            // best-effort: hata olsa da item silme devam etsin
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Görsel silme baþarýsýz (yok sayýldý): {ex.Message}");
+        }
+    }
 }

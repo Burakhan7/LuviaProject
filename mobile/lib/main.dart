@@ -1,3 +1,4 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -15,6 +16,7 @@ void main() async {
 
 class LuviaApp extends StatelessWidget {
   const LuviaApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -28,13 +30,29 @@ class LuviaApp extends StatelessWidget {
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
+
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
   int _index = 0;
-  final _screens = const [HomeScreen(), WardrobeScreen(), OutfitsScreen(), ProfileScreen()];
+
+  final _homeKey = GlobalKey<HomeScreenState>();
+
+  late final List<Widget> _screens = [
+    HomeScreen(key: _homeKey),
+    const WardrobeScreen(),
+    const OutfitsScreen(),
+    const ProfileScreen(),
+  ];
+
+  void _onTabChanged(int i) {
+    setState(() => _index = i);
+    if (i == 0) {
+      _homeKey.currentState?.refresh();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,13 +63,29 @@ class _MainShellState extends State<MainShell> {
         body: IndexedStack(index: _index, children: _screens),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _index,
-          onDestinationSelected: (i) => setState(() => _index = i),
+          onDestinationSelected: _onTabChanged,
           backgroundColor: Colors.white,
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Ana Sayfa'),
-            NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view), label: 'Galeri'),
-            NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'Kombin'),
-            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Ana Sayfa',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.grid_view_outlined),
+              selectedIcon: Icon(Icons.grid_view),
+              label: 'Galeri',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.auto_awesome_outlined),
+              selectedIcon: Icon(Icons.auto_awesome),
+              label: 'Kombin',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profil',
+            ),
           ],
         ),
       ),

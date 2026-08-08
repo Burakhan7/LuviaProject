@@ -6,10 +6,10 @@ import '../theme.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   final _api = ApiService();
   late Future<List<WardrobeItem>> _future;
 
@@ -17,6 +17,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _future = _api.getWardrobe();
+  }
+
+  void refresh() {
+    setState(() {
+      _future = _api.getWardrobe();
+    });
   }
 
   String get _greeting {
@@ -189,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     return SizedBox(
-      height: 140,
+      height: 150,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length > 10 ? 10 : items.length,
@@ -197,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (_, i) {
           final item = items[i];
           return Container(
-            width: 110,
+            width: 90,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
