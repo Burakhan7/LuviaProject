@@ -10,9 +10,9 @@ class StorageService {
   /// Kullanıcı iptal ederse null döner.
   Future<String?> pickAndUpload({required ImageSource source}) async {
     final XFile? picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1024,
-      imageQuality: 85,
+      source: source, // ← parametreyi kullan, sabit değil
+      maxWidth: 1280,
+      imageQuality: 88,
     );
     if (picked == null) return null;
 

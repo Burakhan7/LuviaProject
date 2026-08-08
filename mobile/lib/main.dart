@@ -41,11 +41,15 @@ class _MainShellState extends State<MainShell> {
   final _homeKey = GlobalKey<HomeScreenState>();
 
   late final List<Widget> _screens = [
-    HomeScreen(key: _homeKey),
+    HomeScreen(key: _homeKey, onNavigateToTab: _goToTab),
     const WardrobeScreen(),
     const OutfitsScreen(),
     const ProfileScreen(),
   ];
+
+  void _goToTab(int i) {
+    setState(() => _index = i);
+  }
 
   void _onTabChanged(int i) {
     setState(() => _index = i);

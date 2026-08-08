@@ -305,7 +305,7 @@ def analyze_part_image(cutout, category_from_seg, kind):
     white.paste(cutout, mask=cutout.split()[-1])
 
     category, _, cat_low = classify(white, CATEGORY)
-    result = {"category": category, "color": dominant_color(white)}
+    result = {"category": category, "color": dominant_color_masked(cutout)} 
 
     OUTERWEAR = {"Jacket", "Coat", "Cardigan", "Blazer"}
     if category in OUTERWEAR:
@@ -323,6 +323,27 @@ def analyze_part_image(cutout, category_from_seg, kind):
     result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
     return result, cutout   # ← cutout'u da döndür
 
+def dominant_color_masked(rgba_cutout):
+    """Sadece opak (kıyafet) pikselleri sayarak baskın rengi bulur. Beyaz zemin karışmaz."""
+    import numpy as np
+    arr = np.array(rgba_cutout.convert("RGBA"))
+    alpha = arr[:, :, 3]
+    opaque = alpha > 128
+
+    if opaque.sum() == 0:
+        return color_name((128, 128, 128))   # hiç opak yoksa nötr
+
+    # Sadece opak piksellerin RGB'sini al, tek satırlık görüntü yap
+    pixels = arr[:, :, :3][opaque].astype("uint8")     # (N, 3)
+    strip = pixels.reshape(1, -1, 3)                    # (1, N, 3)
+    strip_img = Image.fromarray(strip, "RGB")
+
+    # median-cut ile baskın rengi bul (dominant_color'ın mantığı ama merkez kırpma YOK)
+    q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
+    palette = q.getpalette()
+    idx = sorted(q.getcolors(), reverse=True)[0][1]
+    rgb = tuple(palette[idx * 3: idx * 3 + 3])
+    return color_name(rgb)
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
 
