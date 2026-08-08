@@ -8,6 +8,10 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
+import uuid
+import firebase_admin
+from firebase_admin import credentials, storage
+from rembg import remove
 
 app = FastAPI(title="Luvia CV Service")
 
@@ -22,6 +26,13 @@ _model = CLIPModel.from_pretrained(MODEL_ID)
 _processor = CLIPProcessor.from_pretrained(MODEL_ID)
 _model.eval()
 print("[i] Model hazır.")
+
+# ── Firebase Admin başlat (bir kez) ──
+BUCKET_NAME = "kombinv1.firebasestorage.app"   # kendi bucket'ın
+_cred = credentials.Certificate("firebase-key.json")
+firebase_admin.initialize_app(_cred, {"storageBucket": BUCKET_NAME})
+_bucket = storage.bucket()
+print("[i] Firebase Storage bağlı.")
 
 # ── Etiketler: prompt -> .NET ENUM İSMİ (birebir eşleşmeli!) ──
 CATEGORY = {
@@ -171,31 +182,54 @@ def color_name(rgb):
 def health():
     return {"status": "ok"}
 
+def remove_background(img: Image.Image) -> Image.Image:
+    """Arka planı siler, RGBA (şeffaf) döndürür."""
+    return remove(img).convert("RGBA")
+
+
+def upload_to_storage(img: Image.Image) -> str:
+    """İşlenmiş görüntüyü Firebase Storage'a yükler, erişilebilir URL döndürür."""
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    blob = _bucket.blob(f"processed/{uuid.uuid4()}.png")
+    blob.upload_from_file(buffer, content_type="image/png")
+
+    # make_public yerine imzalı URL (uniform bucket access ile de çalışır)
+    from datetime import timedelta
+    url = blob.generate_signed_url(expiration=timedelta(days=365), method="GET")
+    return url
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 def analyze(req: AnalyzeRequest):
     img = download_image(req.imageUrl)
 
-    # 1) Kategori
+    # 1) Kategori + tür
     category, _, cat_low = classify(img, CATEGORY)
     kind = kind_for(category)
 
-    # 2) Türe göre attribute'lar
+    # 2) Attribute'lar
     result = {"category": category, "color": dominant_color(img)}
     low_fields = []
     if cat_low:
         low_fields.append("Category")
-
     for field, group in PART_ATTRS[kind]:
         label, _, low = classify(img, group)
-        # Pydantic alan adları camelCase: JewelryType -> jewelryType
         key = field[0].lower() + field[1:]
         result[key] = label
         if low:
             low_fields.append(field)
-
     result["lowConfidenceFields"] = low_fields
-    # processedImageUrl: bu adımda henüz Storage'a yazmıyoruz, sonraki adımda eklenecek
-    result["processedImageUrl"] = None
+
+    # 3) Arka planı sil + Storage'a yükle
+    try:
+        print(">>> Arka plan siliniyor + Storage'a yükleniyor...")
+        cutout = remove_background(img)
+        result["processedImageUrl"] = upload_to_storage(cutout)
+        print(f">>> Yuklendi: {result['processedImageUrl']}")
+    except Exception as e:
+        print(f">>> HATA: {e}")
+        result["processedImageUrl"] = None
 
     return AnalyzeResponse(**result)
