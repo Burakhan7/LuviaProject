@@ -32,3 +32,12 @@ istek-py.json
 firebase-key.json
 cv-service/firebase-key.json
 *serviceaccount*.json
+
+# ── Flutter ──
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/**/GeneratedPluginRegistrant.*
+**/*.g.dart
+.pub-cache/
