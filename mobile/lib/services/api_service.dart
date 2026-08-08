@@ -22,4 +22,32 @@ class ApiService {
     final List<dynamic> data = jsonDecode(response.body);
     return data.map((json) => WardrobeItem.fromJson(json)).toList();
   }
+
+  /// Tek parça ekle (tek foto)
+  Future<void> addItem(String imageUrl) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/wardrobe/items'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'userId': testUserId, 'originalImageUrl': imageUrl}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Parça eklenemedi: ${response.statusCode} ${response.body}',
+      );
+    }
+  }
+
+  /// Boydan fotodan çoklu parça ekle
+  Future<void> addFullbody(String imageUrl) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/wardrobe/items/fullbody'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'userId': testUserId, 'originalImageUrl': imageUrl}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Kombin eklenemedi: ${response.statusCode} ${response.body}',
+      );
+    }
+  }
 }
