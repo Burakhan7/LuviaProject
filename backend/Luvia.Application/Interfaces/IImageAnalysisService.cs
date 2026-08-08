@@ -10,4 +10,5 @@ namespace Luvia.Application.Interfaces;
 public interface IImageAnalysisService
 {
     Task<ImageAnalysisResult> AnalyzeAsync(string imageUrl, CancellationToken ct = default);
+    Task<List<ImageAnalysisResult>> AnalyzeFullbodyAsync(string imageUrl, CancellationToken ct = default);
 }

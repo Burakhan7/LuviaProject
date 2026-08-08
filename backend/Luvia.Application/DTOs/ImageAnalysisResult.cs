@@ -29,4 +29,6 @@ public class ImageAnalysisResult
     // CV'nin kararsız kaldığı alanların adları (Python'daki ⚠ bayrağı).
     // Boş değilse item NeedsReview = true olur.
     public List<string> LowConfidenceFields { get; set; } = new();
+    // Bu üst parça katmanlı mı? (ceket/hırka + altında başka üst)
+    public bool IsLayered { get; set; }
 }

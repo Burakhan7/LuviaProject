@@ -10,11 +10,15 @@ from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 import uuid
 import firebase_admin
+from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
+import torch.nn.functional as F
+import numpy as np
+from scipy import ndimage
 from firebase_admin import credentials, storage
 from rembg import remove
 
 app = FastAPI(title="Luvia CV Service")
-
+SEG_MODEL_ID = "mattmdjaga/segformer_b2_clothes"
 MODEL_ID = "patrickjohncyh/fashion-clip"
 TEMPLATE = "a photo of {}"
 LOW_CONF = 0.45
@@ -26,6 +30,24 @@ _model = CLIPModel.from_pretrained(MODEL_ID)
 _processor = CLIPProcessor.from_pretrained(MODEL_ID)
 _model.eval()
 print("[i] Model hazır.")
+
+print("[i] Segmentasyon modeli yükleniyor...")
+_seg_model = AutoModelForSemanticSegmentation.from_pretrained(SEG_MODEL_ID)
+_seg_processor = SegformerImageProcessor.from_pretrained(SEG_MODEL_ID)
+_seg_model.eval()
+print("[i] Segmentasyon modeli hazır.")
+
+# seg sınıf id -> (görünen ad, alt-kategori sözlüğü | None, tür)
+SEG_PLAN = {
+    4:  ("Upper", None, "clothing"),
+    6:  ("Lower", None, "clothing"),
+    5:  ("Skirt", None, "clothing"),
+    7:  ("Dress", None, "clothing"),
+    1:  ("Hat",   None, "accessory"),
+    16: ("Bag",   None, "accessory"),
+}
+SHOE_IDS = (9, 10)
+MIN_PART_FRAC = 0.003
 
 # ── Firebase Admin başlat (bir kez) ──
 BUCKET_NAME = "kombinv1.firebasestorage.app"   # kendi bucket'ın
@@ -93,7 +115,11 @@ PART_ATTRS = {
 SHOE_LABELS = {"Sneakers", "Boots", "Heels", "Sandals"}
 ACCESSORY_LABELS = {"Hat", "Bag"}
 JEWELRY_LABELS = {"Necklace", "Earrings", "Ring", "Bracelet", "Watch", "Brooch"}
-
+# Üst giyimin katmanlı olup olmadığını tespit (sadece clothing/üst için sorulur)
+LAYERING = {
+    "a jacket or cardigan worn over another top": "layered",
+    "a single top worn alone": "single",
+}
 
 def kind_for(cat):
     if cat in SHOE_LABELS: return "shoes"
@@ -111,6 +137,7 @@ class AnalyzeResponse(BaseModel):
     category: str
     color: str
     processedImageUrl: str | None = None
+    isLayered: bool = False  
     style: str | None = None
     formality: str | None = None
     season: str | None = None
@@ -211,6 +238,10 @@ def analyze(req: AnalyzeRequest):
 
     # 2) Attribute'lar
     result = {"category": category, "color": dominant_color(img)}
+        # Sadece dış-giyim türü parçalarda katman tespiti (ceket/mont/hırka/blazer)
+    OUTERWEAR = {"Jacket", "Coat", "Cardigan", "Blazer"}
+    if category in OUTERWEAR:
+        result["isLayered"] = detect_layering(img)
     low_fields = []
     if cat_low:
         low_fields.append("Category")
@@ -233,3 +264,104 @@ def analyze(req: AnalyzeRequest):
         result["processedImageUrl"] = None
 
     return AnalyzeResponse(**result)
+
+
+def segment(img):
+    inputs = _seg_processor(images=img, return_tensors="pt")
+    with torch.no_grad():
+        logits = _seg_model(**inputs).logits
+    up = F.interpolate(logits, size=(img.height, img.width), mode="bilinear", align_corners=False)
+    return up.argmax(dim=1)[0].cpu().numpy()
+
+
+def cutout_from_mask(img, mask, pad=6):
+    # Maskede birden fazla ayrı bölge varsa (yansıma/ikinci açı), sadece EN BÜYÜĞÜNÜ al
+    labeled, num = ndimage.label(mask)
+    if num > 1:
+        sizes = ndimage.sum(mask, labeled, range(1, num + 1))
+        largest = np.argmax(sizes) + 1
+        mask = (labeled == largest)
+        print(f">>> {num} ayrı bölge bulundu, en büyüğü seçildi")
+
+    ys, xs = np.where(mask)
+    if len(ys) == 0:
+        return None
+    h, w = mask.shape
+    y0 = max(0, int(ys.min()) - pad); y1 = min(h, int(ys.max()) + 1 + pad)
+    x0 = max(0, int(xs.min()) - pad); x1 = min(w, int(xs.max()) + 1 + pad)
+    rgba = img.convert("RGBA")
+    alpha = Image.fromarray((mask.astype("uint8") * 255), "L")
+    from PIL import ImageFilter
+    alpha = alpha.filter(ImageFilter.GaussianBlur(1.2))
+    rgba.putalpha(alpha)
+    return rgba.crop((x0, y0, x1, y1))
+
+
+def analyze_part_image(cutout, category_from_seg, kind):
+    """Bir segment kesimini analiz eder, tek foto ile aynı formatta sonuç üretir."""
+    # beyaz zemine oturt (FashionCLIP beyaz sever)
+    white = Image.new("RGB", cutout.size, (255, 255, 255))
+    white.paste(cutout, mask=cutout.split()[-1])
+
+    category, _, cat_low = classify(white, CATEGORY)
+    result = {"category": category, "color": dominant_color(white)}
+        # Sadece dış-giyim türü parçalarda katman tespiti (ceket/mont/hırka/blazer)
+    OUTERWEAR = {"Jacket", "Coat", "Cardigan", "Blazer"}
+    if category in OUTERWEAR:
+        result["isLayered"] = detect_layering(white)
+        
+    low_fields = ["Category"] if cat_low else []
+
+    for field, group in PART_ATTRS[kind_for(category)]:
+        label, _, low = classify(white, group)
+        key = field[0].lower() + field[1:]
+        result[key] = label
+        if low:
+            low_fields.append(field)
+
+    result["lowConfidenceFields"] = low_fields
+    try:
+        result["processedImageUrl"] = upload_to_storage(cutout)
+    except Exception as e:
+        print(f">>> Parça yükleme hatası: {e}")
+        result["processedImageUrl"] = None
+    return result
+
+class FullbodyResponse(BaseModel):
+    items: list[AnalyzeResponse] = []
+
+
+@app.post("/analyze-fullbody", response_model=FullbodyResponse)
+def analyze_fullbody(req: AnalyzeRequest):
+    img = download_image(req.imageUrl)
+    seg = segment(img)
+    min_px = int(MIN_PART_FRAC * seg.shape[0] * seg.shape[1])
+
+    items = []
+
+    # Tek sınıflı parçalar (üst, alt, etek, elbise, şapka, çanta)
+    for cid, (label, _, kind) in SEG_PLAN.items():
+        mask = (seg == cid)
+        if mask.sum() < min_px:
+            continue
+        cutout = cutout_from_mask(img, mask)
+        if cutout is None:
+            continue
+        print(f">>> Parça bulundu: {label}")
+        items.append(AnalyzeResponse(**analyze_part_image(cutout, label, kind)))
+
+    # Ayakkabılar (sol+sağ birleşik)
+    shoe_mask = np.isin(seg, SHOE_IDS)
+    if shoe_mask.sum() >= min_px:
+        cutout = cutout_from_mask(img, shoe_mask)
+        if cutout is not None:
+            print(">>> Parça bulundu: Shoes")
+            items.append(AnalyzeResponse(**analyze_part_image(cutout, "Shoes", "shoes")))
+
+    return FullbodyResponse(items=items)
+
+def detect_layering(img) -> bool:
+    """Üst giyim katmanlı mı (dışta ceket/hırka + altında başka üst)?"""
+    label, p1, low = classify(img, LAYERING)
+    # 'layered' belirgin şekilde öndeyse katmanlı say (kararsızsa güvenli tarafta: değil)
+    return label == "layered" and not low

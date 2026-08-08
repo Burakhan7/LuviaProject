@@ -28,7 +28,12 @@ public class PythonCvAnalysisService : IImageAnalysisService
     {
         // Python'a { "imageUrl": "..." } gönder
         var response = await _http.PostAsJsonAsync("/analyze", new { imageUrl }, ct);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"CV servisi {(int)response.StatusCode} döndü: {errorBody}");
+        }
 
         // Dönen JSON zaten ImageAnalysisResult ile birebir eþleþiyor (contract-first!)
         var result = await response.Content.ReadFromJsonAsync<ImageAnalysisResult>(JsonOptions, ct);
@@ -37,5 +42,25 @@ public class PythonCvAnalysisService : IImageAnalysisService
             throw new InvalidOperationException("CV servisi boþ yanýt döndü.");
 
         return result;
+    }
+    public async Task<List<ImageAnalysisResult>> AnalyzeFullbodyAsync(string imageUrl, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync("/analyze-fullbody", new { imageUrl }, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"CV servisi {(int)response.StatusCode} döndü: {errorBody}");
+        }
+
+        var wrapper = await response.Content.ReadFromJsonAsync<FullbodyWrapper>(JsonOptions, ct);
+        return wrapper?.Items ?? new List<ImageAnalysisResult>();
+    }
+
+    // Python'un {"items": [...]} yanýtýný karþýlar
+    private class FullbodyWrapper
+    {
+        public List<ImageAnalysisResult> Items { get; set; } = new();
     }
 }

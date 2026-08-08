@@ -69,6 +69,7 @@ public class WardrobeItem
     public void ApplyAnalysis(
         ColorName color,
         string? processedImageUrl,
+        bool isLayered = false,
         Style? style = null,
         Formality? formality = null,
         Season? season = null,
@@ -81,6 +82,7 @@ public class WardrobeItem
     {
         Color = color;
         ProcessedImageUrl = processedImageUrl;
+        IsLayered = isLayered;
 
         // Ortak alanlar (renk hariç türlere göre değişir)
         switch (Kind)
@@ -117,4 +119,6 @@ public class WardrobeItem
 
     /// <summary>Kullanıcı belirsiz alanları onayladığında çağrılır.</summary>
     public void MarkReviewed() => NeedsReview = false;
+    // CV: bu üst parça katmanlı algılandı mı? Kullanıcıya "iç parça da ekle" sinyali için.
+    public bool IsLayered { get; private set; }
 }

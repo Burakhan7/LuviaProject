@@ -33,6 +33,7 @@ builder.Services.AddHttpClient<IImageAnalysisService, PythonCvAnalysisService>(c
 })
 .AddTypedClient<IImageAnalysisService>((httpClient, sp) =>
     new PythonCvAnalysisService(httpClient));
+builder.Services.AddScoped<AddFullbodyItemsHandler>();
 
 var app = builder.Build();
 
@@ -44,6 +45,15 @@ app.MapPost("/wardrobe/items", async (
 {
     var item = await handler.HandleAsync(request, ct);
     return Results.Ok(item);
+});
+// ── Endpoint: boydan fotoğraftan çoklu item ekle ──
+app.MapPost("/wardrobe/items/fullbody", async (
+    AddItemRequest request,
+    AddFullbodyItemsHandler handler,
+    CancellationToken ct) =>
+{
+    var items = await handler.HandleAsync(request, ct);
+    return Results.Ok(items);
 });
 
 // ── Endpoint: kullanıcının gardırobunu listele ────────────────

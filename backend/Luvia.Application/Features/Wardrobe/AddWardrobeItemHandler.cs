@@ -38,6 +38,7 @@ public class AddWardrobeItemHandler
         item.ApplyAnalysis(
             color: result.Color,
             processedImageUrl: result.ProcessedImageUrl,
+            isLayered: result.IsLayered,
             style: result.Style,
             formality: result.Formality,
             season: result.Season,

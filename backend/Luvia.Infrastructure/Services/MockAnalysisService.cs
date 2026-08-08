@@ -42,4 +42,9 @@ public class MockAnalysisService : IImageAnalysisService
             Fit = fit,
             LowConfidenceFields = new()
         };
+    public async Task<List<ImageAnalysisResult>> AnalyzeFullbodyAsync(string imageUrl, CancellationToken ct = default)
+    {
+        var single = await AnalyzeAsync(imageUrl, ct);
+        return new List<ImageAnalysisResult> { single };
+    }
 }
