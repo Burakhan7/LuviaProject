@@ -34,8 +34,15 @@ builder.Services.AddHttpClient<IImageAnalysisService, PythonCvAnalysisService>(c
 .AddTypedClient<IImageAnalysisService>((httpClient, sp) =>
     new PythonCvAnalysisService(httpClient));
 builder.Services.AddScoped<AddFullbodyItemsHandler>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+});
 
 var app = builder.Build();
+
+app.UseCors("AllowAll");
 
 // ── Endpoint: fotoğraf URL'inden item ekle ────────────────────
 app.MapPost("/wardrobe/items", async (
