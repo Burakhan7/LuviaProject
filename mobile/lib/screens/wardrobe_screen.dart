@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/wardrobe_item.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
@@ -109,17 +110,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     }
   }
 
-  Future<void> _add({required bool fullbody}) async {
+    Future<void> _add({required bool fullbody, required ImageSource source}) async {
     try {
-      setState(() {
-        _uploading = true;
-      });
+      setState(() { _uploading = true; });
 
-      final url = await _storage.pickAndUpload();
+      final url = await _storage.pickAndUpload(source: source);   // ← source geçir
       if (url == null) {
-        setState(() {
-          _uploading = false;
-        });
+        setState(() { _uploading = false; });
         return;
       }
 
@@ -140,48 +137,87 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             .showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _uploading = false;
-        });
-      }
+      if (mounted) setState(() { _uploading = false; });
     }
   }
 
-  void _showAddSheet() => showModalBottomSheet(
+    void _showAddSheet() => showModalBottomSheet(
         context: context,
         backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         builder: (_) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(Icons.checkroom, color: LuviaTheme.primary),
-                title: const Text('Parça Ekle'),
-                subtitle: const Text('Tek kıyafetin fotoğrafı'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _add(fullbody: false);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.person, color: LuviaTheme.primary),
-                title: const Text('Kombin Yakala'),
-                subtitle: const Text('Boydan fotoğraf'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _add(fullbody: true);
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _addRow(
+                  icon: Icons.checkroom,
+                  title: 'Parça Ekle',
+                  subtitle: 'Tek kıyafetin fotoğrafı',
+                  fullbody: false,
+                ),
+                const Divider(height: 28),
+                _addRow(
+                  icon: Icons.person,
+                  title: 'Kombin Yakala',
+                  subtitle: 'Boydan fotoğraf',
+                  fullbody: true,
+                ),
+              ],
+            ),
           ),
         ),
       );
+
+  Widget _addRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool fullbody,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: LuviaTheme.primary, size: 28),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            ],
+          ),
+        ),
+        // Kamera butonu
+        IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+            _add(fullbody: fullbody, source: ImageSource.camera);
+          },
+          icon: const Icon(Icons.camera_alt),
+          color: LuviaTheme.primary,
+          tooltip: 'Çek',
+          style: IconButton.styleFrom(backgroundColor: LuviaTheme.bgTop),
+        ),
+        const SizedBox(width: 8),
+        // Galeri butonu
+        IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+            _add(fullbody: fullbody, source: ImageSource.gallery);
+          },
+          icon: const Icon(Icons.photo_library),
+          color: LuviaTheme.primary,
+          tooltip: 'Galeri',
+          style: IconButton.styleFrom(backgroundColor: LuviaTheme.bgTop),
+        ),
+      ],
+    );
+  }
 
   Widget _filterBar() {
     const filters = ['Tümü', 'Üst', 'Alt', 'Elbise', 'Ayakkabı', 'Aksesuar', 'Takı'];
