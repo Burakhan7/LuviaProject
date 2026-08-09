@@ -7,6 +7,8 @@ import 'screens/home_screen.dart';
 import 'screens/wardrobe_screen.dart';
 import 'screens/outfits_screen.dart';
 import 'screens/profile_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'screens/auth_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +25,18 @@ class LuviaApp extends StatelessWidget {
       title: 'Luvia',
       debugShowCheckedModeBanner: false,
       theme: LuviaTheme.theme,
-      home: const MainShell(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          // Giriş yapmışsa ana uygulama, yapmamışsa giriş ekranı
+          return snapshot.hasData ? const MainShell() : const AuthScreen();
+        },
+      ),
     );
   }
 }
