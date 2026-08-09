@@ -39,6 +39,17 @@ public class WardrobeItem
         IsAvailable = available;
     }
 
+    // WardrobeItem entity'sine
+    public void CorrectAttributes(Category category, ColorName color, Season season)
+    {
+        Category = category;
+        Color = color;
+        Season = season;
+        Kind = category.ToKind();   // Create ile aynı mantık — tek kaynak
+    }
+
+
+
     // EF Core parametresiz ctor ister; dışarıya kapalı
     private WardrobeItem() { }
 
@@ -127,4 +138,6 @@ public class WardrobeItem
     public void MarkReviewed() => NeedsReview = false;
     // CV: bu üst parça katmanlı algılandı mı? Kullanıcıya "iç parça da ekle" sinyali için.
     public bool IsLayered { get; private set; }
+    
+
 }

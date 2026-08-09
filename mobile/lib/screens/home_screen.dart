@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile/services/weather_service.dart';
 import '../models/wardrobe_item.dart';
@@ -271,14 +272,15 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: item.processedImageUrl != null
-                        ? Image.network(
-                            item.processedImageUrl!,
+                        ? CachedNetworkImage(
+                            imageUrl: item.processedImageUrl!,
                             fit: BoxFit.cover,
-                            filterQuality: FilterQuality.medium,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.checkroom,
-                              color: LuviaTheme.primary,
-                            ),
+                            memCacheWidth:
+                                300, // gösterilecek boyutta cache — bellek + hız
+                            placeholder: (context, url) =>
+                                Container(color: LuviaTheme.bgTop),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.checkroom),
                           )
                         : const Icon(
                             Icons.checkroom,
@@ -517,11 +519,14 @@ class HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: item.processedImageUrl != null
-                      ? Image.network(
-                          item.processedImageUrl!,
+                      ? CachedNetworkImage(
+                          imageUrl: item.processedImageUrl!,
                           fit: BoxFit.cover,
-                          filterQuality: FilterQuality.medium,
-                          errorBuilder: (_, __, ___) =>
+                          memCacheWidth:
+                              300, // gösterilecek boyutta cache — bellek + hız
+                          placeholder: (context, url) =>
+                              Container(color: LuviaTheme.bgTop),
+                          errorWidget: (context, url, error) =>
                               const Icon(Icons.checkroom),
                         )
                       : Container(

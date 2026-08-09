@@ -22,6 +22,7 @@ class LuviaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      showPerformanceOverlay: true,
       title: 'Luvia',
       debugShowCheckedModeBanner: false,
       theme: LuviaTheme.theme,
@@ -52,12 +53,13 @@ class _MainShellState extends State<MainShell> {
   int _index = 0;
 
   final _homeKey = GlobalKey<HomeScreenState>();
+  final _profileKey = GlobalKey<ProfileScreenState>();
 
   late final List<Widget> _screens = [
-    HomeScreen(key: _homeKey, onNavigateToTab: _goToTab),
-    const WardrobeScreen(),
-    const OutfitsScreen(),
-    const ProfileScreen(),
+    HomeScreen(key: _homeKey, onNavigateToTab: _goToTab), // index 0
+    const WardrobeScreen(), // index 1
+    const OutfitsScreen(), // index 2
+    ProfileScreen(key: _profileKey),
   ];
 
   void _goToTab(int i) {
@@ -69,6 +71,7 @@ class _MainShellState extends State<MainShell> {
     if (i == 0) {
       _homeKey.currentState?.refresh();
     }
+    if (i == 3) _profileKey.currentState?.refresh();
   }
 
   @override

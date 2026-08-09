@@ -80,4 +80,23 @@ class ApiService {
       throw Exception('Güncellenemedi: ${response.statusCode}');
     }
   }
+
+  Future<void> correctItem(
+    String id,
+    String category,
+    String color,
+    String season,
+  ) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/wardrobe/items/$id/correct'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'category': category,
+        'color': color,
+        'season': season,
+      }),
+    );
+    if (response.statusCode != 200)
+      throw Exception('Düzeltilemedi: ${response.statusCode}');
+  }
 }

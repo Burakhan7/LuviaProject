@@ -185,27 +185,63 @@ def dominant_color(img):
     return color_name(rgb)
 
 
-def color_name(rgb):
-    r, g, b = [c / 255.0 for c in rgb]
-    h, s, v = colorsys.rgb_to_hsv(r, g, b)
-    H = h * 360.0
-    if s < 0.15:
-        if v < 0.22: return "Black"
-        if v < 0.70: return "Gray"
-        return "White"
-    if v < 0.12: return "Black"
-    if 20 <= H <= 70 and s < 0.35 and v > 0.60:
-        return "Cream" if v > 0.85 else "Beige"
-    if 40 <= H <= 90 and v < 0.60: return "Khaki"
-    if H < 15 or H >= 345: return "Red" if v >= 0.50 else "Burgundy"
-    if H < 45: return "Orange" if v >= 0.50 else "Brown"
-    if H < 65: return "Yellow"
-    if H < 160: return "Green"
-    if H < 195: return "Turquoise"
-    if H < 255: return "Blue" if v >= 0.50 else "Navy"
-    if H < 290: return "Purple"
-    return "Pink" if v > 0.60 else "Purple"
+# Referans renkler — RGB olarak (LAB'e çevrilecek). Senin ColorName enum'ınla birebir.
+_COLOR_REFS = {
+    "Black":     (20, 20, 20),
+    "Gray":      (128, 128, 128),
+    "Gray":      (135, 135, 135),
+    "White":     (225, 225, 225),
+    "Beige":     (225, 200, 165),
+    "Khaki":     (140, 130, 90),
+    "Red":       (200, 30, 30),
+    "Burgundy":  (110, 30, 40),
+    "Orange":    (230, 130, 40),
+    "Brown":     (110, 70, 40),
+    "Yellow":    (235, 210, 60),
+    "Green":     (60, 140, 70),
+    "Turquoise": (60, 190, 190),
+    "Blue":      (50, 110, 200),
+    "Navy":      (30, 40, 90),
+    "Purple":    (120, 60, 150),
+    "Pink":      (230, 130, 180),
+}
 
+# Referansların LAB karşılıklarını bir kez hesapla (açılışta)
+def _rgb_to_lab(rgb):
+    import numpy as np
+    from skimage.color import rgb2lab
+    arr = np.array([[[c / 255.0 for c in rgb]]])  # (1,1,3) normalize
+    return rgb2lab(arr)[0, 0]  # [L, a, b]
+
+_COLOR_REFS_LAB = {name: _rgb_to_lab(rgb) for name, rgb in _COLOR_REFS.items()}
+
+
+def color_name(rgb):
+    import numpy as np
+    lab = _rgb_to_lab(rgb)
+    L, a, b = lab[0], lab[1], lab[2]
+    chroma = float(np.sqrt(a * a + b * b))
+
+    print(f">>> RGB:{rgb} L={L:.0f} a={a:.0f} b={b:.0f} chroma={chroma:.0f}")
+
+    # ── NÖTR BÖLGE ──
+    if chroma < 18:
+        if L < 28:
+            return "Brown" if b > 8 else "Black"
+        elif L < 55:
+            return "Gray"
+        else:
+            return "Beige" if b > 12 else "White"
+
+    # ── DOYGUN RENKLER ──
+    best_name = "Gray"
+    best_dist = float("inf")
+    for name, ref_lab in _COLOR_REFS_LAB.items():
+        dist = float(np.sqrt(np.sum((lab - ref_lab) ** 2)))
+        if dist < best_dist:
+            best_dist = dist
+            best_name = name
+    return best_name
 
 @app.get("/health")
 def health():
@@ -337,6 +373,7 @@ def dominant_color_masked(rgba_cutout):
     pixels = arr[:, :, :3][opaque].astype("uint8")     # (N, 3)
     strip = pixels.reshape(1, -1, 3)                    # (1, N, 3)
     strip_img = Image.fromarray(strip, "RGB")
+    
 
     # median-cut ile baskın rengi bul (dominant_color'ın mantığı ama merkez kırpma YOK)
     q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
@@ -433,4 +470,33 @@ def delete_image(req: DeleteImageRequest):
         return {"deleted": False, "reason": "processed/ yolu bulunamadı"}
     except Exception as e:
         print(f">>> Görsel silme hatası: {e}")
-        return {"deleted": False, "reason": str(e)}    
+        return {"deleted": False, "reason": str(e)}  
+
+    """
+    Gray World beyaz dengesi: renkli ışık kaymasını (sarı lamba, mavi gölge) nötrler.
+    strength: 0=etki yok, 1=tam düzeltme. Aşırı düzeltmeyi önlemek için <1 tutulur.
+    """
+    import numpy as np
+    arr = np.array(img.convert("RGB")).astype(np.float32)
+
+    # Her kanalın ortalaması
+    r_mean = arr[:, :, 0].mean()
+    g_mean = arr[:, :, 1].mean()
+    b_mean = arr[:, :, 2].mean()
+    gray = (r_mean + g_mean + b_mean) / 3.0
+
+    if r_mean < 1 or g_mean < 1 or b_mean < 1:
+        return img  # neredeyse siyah, dokunma
+
+    # Her kanalı griye çekecek ölçek — ama strength ile sınırlı
+    r_scale = 1 + (gray / r_mean - 1) * strength
+    g_scale = 1 + (gray / g_mean - 1) * strength
+    b_scale = 1 + (gray / b_mean - 1) * strength
+
+    arr[:, :, 0] *= r_scale
+    arr[:, :, 1] *= g_scale
+    arr[:, :, 2] *= b_scale
+
+    arr = np.clip(arr, 0, 255).astype("uint8")
+    from PIL import Image
+    return Image.fromarray(arr, "RGB")          

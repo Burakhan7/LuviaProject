@@ -109,6 +109,19 @@ app.MapPatch("/wardrobe/items/{id}/availability", async (
     return Results.Ok();
 });
 
+app.MapPatch("/wardrobe/items/{id}/correct", async (
+    Guid id, CorrectRequest req,
+    IWardrobeItemRepository repo, CancellationToken ct) =>
+{
+    var item = await repo.GetByIdAsync(id, ct);
+    if (item is null) return Results.NotFound();
+    item.CorrectAttributes(req.Category, req.Color, req.Season);
+    await repo.SaveChangesAsync(ct);
+    return Results.Ok();
+});
+
+
+
 app.MapGet("/outfits/{userId}", async (
     string userId,
     Season season,
@@ -140,3 +153,6 @@ app.MapGet("/outfits/{userId}", async (
 });
 
 app.Run();
+
+record CorrectRequest(Category Category, ColorName Color, Season Season);
+record AvailabilityRequest(bool IsAvailable);

@@ -1,4 +1,5 @@
 // lib/screens/outfits_screen.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../models/outfit.dart';
 import '../services/api_service.dart';
@@ -485,14 +486,15 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                           ),
                           clipBehavior: Clip.antiAlias,
                           child: item.processedImageUrl != null
-                              ? Image.network(
-                                  item.processedImageUrl!,
+                              ? CachedNetworkImage(
+                                  imageUrl: item.processedImageUrl!,
                                   fit: BoxFit.cover,
-                                  filterQuality: FilterQuality.medium,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.checkroom,
-                                    color: LuviaTheme.primary,
-                                  ),
+                                  memCacheWidth:
+                                      300, // gösterilecek boyutta cache — bellek + hız
+                                  placeholder: (context, url) =>
+                                      Container(color: LuviaTheme.bgTop),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(Icons.checkroom),
                                 )
                               : const Icon(
                                   Icons.checkroom,

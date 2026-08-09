@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/wardrobe_item.dart';
@@ -20,7 +21,14 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   String _selectedFilter = 'Tümü';
 
   static const _upperCats = {
-    'TShirt', 'Shirt', 'Sweater', 'Hoodie', 'Cardigan', 'Jacket', 'Coat', 'Blazer',
+    'TShirt',
+    'Shirt',
+    'Sweater',
+    'Hoodie',
+    'Cardigan',
+    'Jacket',
+    'Coat',
+    'Blazer',
   };
   static const _lowerCats = {'Jeans', 'Pants', 'Shorts', 'Skirt', 'Sweatpants'};
 
@@ -42,8 +50,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       _refresh();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Hata: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     }
   }
@@ -78,13 +87,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       await _api.deleteItem(item.id);
       _refresh();
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Silindi')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Silindi')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Hata: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     }
   }
@@ -110,13 +121,22 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     }
   }
 
-    Future<void> _add({required bool fullbody, required ImageSource source}) async {
+  Future<void> _add({
+    required bool fullbody,
+    required ImageSource source,
+  }) async {
     try {
-      setState(() { _uploading = true; });
+      setState(() {
+        _uploading = true;
+      });
 
-      final url = await _storage.pickAndUpload(source: source);   // ← source geçir
+      final url = await _storage.pickAndUpload(
+        source: source,
+      ); // ← source geçir
       if (url == null) {
-        setState(() { _uploading = false; });
+        setState(() {
+          _uploading = false;
+        });
         return;
       }
 
@@ -128,50 +148,304 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
       _refresh();
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Eklendi!')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Eklendi!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Hata: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     } finally {
-      if (mounted) setState(() { _uploading = false; });
+      if (mounted)
+        setState(() {
+          _uploading = false;
+        });
     }
   }
 
-    void _showAddSheet() => showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  void _showAddSheet() => showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _addRow(
+              icon: Icons.checkroom,
+              title: 'Parça Ekle',
+              subtitle: 'Tek kıyafetin fotoğrafı',
+              fullbody: false,
+            ),
+            const Divider(height: 28),
+            _addRow(
+              icon: Icons.person,
+              title: 'Kombin Yakala',
+              subtitle: 'Boydan fotoğraf',
+              fullbody: true,
+            ),
+          ],
         ),
-        builder: (_) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _addRow(
-                  icon: Icons.checkroom,
-                  title: 'Parça Ekle',
-                  subtitle: 'Tek kıyafetin fotoğrafı',
-                  fullbody: false,
-                ),
-                const Divider(height: 28),
-                _addRow(
-                  icon: Icons.person,
-                  title: 'Kombin Yakala',
-                  subtitle: 'Boydan fotoğraf',
-                  fullbody: true,
-                ),
-              ],
+      ),
+    ),
+  );
+
+  void _showEditSheet(WardrobeItem item) {
+    String selectedCategory = item.category;
+    String selectedColor = item.color;
+    String selectedSeason = item.season ?? 'MidSeason'; // ← mevsim eklendi
+
+    final categories = [
+      'TShirt',
+      'Shirt',
+      'Sweater',
+      'Hoodie',
+      'Cardigan',
+      'Jacket',
+      'Coat',
+      'Blazer',
+      'Jeans',
+      'Pants',
+      'Shorts',
+      'Skirt',
+      'Sweatpants',
+      'Dress',
+      'Sneakers',
+      'Boots',
+      'Heels',
+      'Sandals',
+    ];
+    final colors = [
+      'Black',
+      'White',
+      'Gray',
+      'Navy',
+      'Blue',
+      'Red',
+      'Green',
+      'Brown',
+      'Beige',
+      'Cream',
+      'Khaki',
+      'Orange',
+      'Yellow',
+      'Purple',
+      'Pink',
+    ];
+    final seasons = {
+      'Summer': 'Yaz',
+      'Winter': 'Kış',
+      'MidSeason': 'Ara Mevsim',
+      'AllSeason': 'Tüm Mevsimler',
+    };
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          // ← SafeArea EKLENDİ
+          child: SingleChildScrollView(
+            // ← taşarsa kaysın
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom +
+                    20, // klavye için
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Düzenle',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (item.processedImageUrl != null)
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: item.processedImageUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: item.processedImageUrl!,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) =>
+                                    Container(color: LuviaTheme.bgTop),
+                                errorWidget: (context, url, error) {
+                                  print('>>> GÖRSEL HATASI: $error');
+                                  print('>>> URL: $url');
+                                  return const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.red,
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: LuviaTheme.bgTop,
+                                child: const Icon(
+                                  Icons.checkroom,
+                                  color: LuviaTheme.primary,
+                                ),
+                              ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+
+                  // Kategori
+                  const Text(
+                    'Kategori',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    decoration: _dropdownDecoration(),
+                    items: categories
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+                    onChanged: (v) =>
+                        setSheetState(() => selectedCategory = v!),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Renk
+                  const Text(
+                    'Renk',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedColor,
+                    decoration: _dropdownDecoration(),
+                    items: colors
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+                    onChanged: (v) => setSheetState(() => selectedColor = v!),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Mevsim
+                  const Text(
+                    'Mevsim',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedSeason,
+                    decoration: _dropdownDecoration(),
+                    items: seasons.entries
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e.key,
+                            child: Text(e.value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setSheetState(() => selectedSeason = v!),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Güven notu — hallettiklerimizi say, sonuna üç nokta
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: LuviaTheme.bgTop,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.auto_awesome,
+                          size: 16,
+                          color: LuviaTheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Stil, kumaş, kalıp, desen... senin için ayarlandı.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black.withOpacity(0.6),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Kaydet
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        try {
+                          await _api.correctItem(
+                            item.id,
+                            selectedCategory,
+                            selectedColor,
+                            selectedSeason!,
+                          );
+                          _refresh();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Güncellendi')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text('Hata: $e')));
+                          }
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: LuviaTheme.primary,
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text('Kaydet'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
+
+  InputDecoration _dropdownDecoration() => InputDecoration(
+    filled: true,
+    fillColor: LuviaTheme.bgTop,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide.none,
+    ),
+  );
 
   Widget _addRow({
     required IconData icon,
@@ -187,8 +461,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
             ],
           ),
         ),
@@ -220,7 +503,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   Widget _filterBar() {
-    const filters = ['Tümü', 'Üst', 'Alt', 'Elbise', 'Ayakkabı', 'Aksesuar', 'Takı'];
+    const filters = [
+      'Tümü',
+      'Üst',
+      'Alt',
+      'Elbise',
+      'Ayakkabı',
+      'Aksesuar',
+      'Takı',
+    ];
     return SizedBox(
       height: 44,
       child: ListView.separated(
@@ -240,7 +531,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 color: sel ? LuviaTheme.primary : Colors.white,
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                  ),
                 ],
               ),
               child: Text(
@@ -282,7 +576,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     'Gardırobum',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
+                  IconButton(
+                    onPressed: _refresh,
+                    icon: const Icon(Icons.refresh),
+                  ),
                 ],
               ),
             ),
@@ -304,29 +601,35 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
                   if (all.isEmpty) {
                     return const Center(
-                      child: Text('Gardırop boş. + ile kıyafet ekle!',
-                          style: TextStyle(color: Colors.black54)),
+                      child: Text(
+                        'Gardırop boş. + ile kıyafet ekle!',
+                        style: TextStyle(color: Colors.black54),
+                      ),
                     );
                   }
                   if (items.isEmpty) {
                     return Center(
-                      child: Text('"$_selectedFilter" kategorisinde parça yok',
-                          style: const TextStyle(color: Colors.black54)),
+                      child: Text(
+                        '"$_selectedFilter" kategorisinde parça yok',
+                        style: const TextStyle(color: Colors.black54),
+                      ),
                     );
                   }
 
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: 0.65,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 0.65,
+                        ),
                     itemCount: items.length,
                     itemBuilder: (_, i) {
                       final item = items[i];
                       return GestureDetector(
+                        onTap: () => _showEditSheet(item),
                         onDoubleTap: () => _toggleAvailability(item),
                         onLongPress: () => _confirmDelete(item),
                         child: Stack(
@@ -339,28 +642,40 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                                   borderRadius: BorderRadius.circular(18),
                                   boxShadow: [
                                     BoxShadow(
-                                        color: Colors.black.withOpacity(0.04),
-                                        blurRadius: 10),
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 10,
+                                    ),
                                   ],
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     Expanded(
                                       child: item.processedImageUrl != null
-                                          ? Image.network(
-                                              item.processedImageUrl!,
+                                          ? CachedNetworkImage(
+                                              imageUrl: item.processedImageUrl!,
                                               fit: BoxFit.cover,
-                                              filterQuality: FilterQuality.medium,
-                                              errorBuilder: (_, __, ___) =>
-                                                  const Icon(Icons.checkroom),
+                                              memCacheWidth:
+                                                  300, // gösterilecek boyutta cache — bellek + hız
+                                              placeholder: (context, url) =>
+                                                  Container(
+                                                    color: LuviaTheme.bgTop,
+                                                  ),
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      const Icon(
+                                                        Icons.checkroom,
+                                                      ),
                                             )
                                           : Container(
                                               color: LuviaTheme.bgTop,
-                                              child: const Icon(Icons.checkroom,
-                                                  size: 30,
-                                                  color: LuviaTheme.primary),
+                                              child: const Icon(
+                                                Icons.checkroom,
+                                                size: 30,
+                                                color: LuviaTheme.primary,
+                                              ),
                                             ),
                                     ),
                                     Padding(
@@ -369,21 +684,26 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text('${item.color} ${item.category}',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600)),
                                           Text(
-                                              item.isLayered
-                                                  ? '${item.kind} · katmanlı'
-                                                  : item.kind,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                  fontSize: 9,
-                                                  color: Colors.black54)),
+                                            '${item.color} ${item.category}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            item.isLayered
+                                                ? '${item.kind} · katmanlı'
+                                                : item.kind,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -397,13 +717,20 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                                 left: 6,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                      color: Colors.orange,
-                                      borderRadius: BorderRadius.circular(8)),
-                                  child: const Text('Müsait değil',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 8)),
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Müsait değil',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8,
+                                    ),
+                                  ),
                                 ),
                               ),
                           ],
