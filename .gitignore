@@ -41,3 +41,6 @@ mobile/.flutter-plugins-dependencies
 mobile/**/GeneratedPluginRegistrant.*
 **/*.g.dart
 .pub-cache/
+
+.env
+cv-service/firebase-key.json

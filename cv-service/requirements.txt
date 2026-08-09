@@ -1,0 +1,10 @@
+fastapi==0.141.1
+uvicorn==0.47.0
+transformers==5.14.1
+pillow==12.3.0
+numpy==2.4.4
+scipy==1.17.1
+scikit-image==0.26.0
+rembg[cpu]==2.0.77
+firebase-admin==6.4.0
+requests==2.34.2

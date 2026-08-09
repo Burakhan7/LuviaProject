@@ -42,6 +42,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// ── Otomatik migration: DB tablolarını oluştur/güncelle ──
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<LuviaDbContext>();
+    db.Database.Migrate();
+}
+
 app.UseCors("AllowAll");
 
 // ── Endpoint: fotoğraf URL'inden item ekle ────────────────────
