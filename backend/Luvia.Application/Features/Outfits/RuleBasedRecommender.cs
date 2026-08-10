@@ -53,10 +53,52 @@ public class RuleBasedRecommender : IOutfitRecommender
                 candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
             }
 
-        return candidates
-            .OrderByDescending(o => o.Score)
-            .Take(maxResults)
-            .ToList();
+        return SelectDiverse(candidates, maxResults);
+    }
+    // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
+    // en yüksek "düzeltilmiş puana" sahip kombini seçer.
+    private static IReadOnlyList<Outfit> SelectDiverse(List<Outfit> candidates, int maxResults)
+    {
+        const double penaltyPerSharedItem = 0.15;   // ortak parça başına ceza
+
+        var selected = new List<Outfit>();
+        var pool = candidates.ToList();
+
+        while (selected.Count < maxResults && pool.Count > 0)
+        {
+            Outfit? best = null;
+            double bestAdjusted = double.NegativeInfinity;
+
+            foreach (var candidate in pool)
+            {
+                int shared = MaxSharedItems(candidate, selected);
+                double adjusted = candidate.Score - penaltyPerSharedItem * shared;
+
+                if (adjusted > bestAdjusted)
+                {
+                    bestAdjusted = adjusted;
+                    best = candidate;
+                }
+            }
+
+            if (best is null) break;
+            selected.Add(best);
+            pool.Remove(best);
+        }
+
+        return selected;
+    }
+
+    // Bir adayın, seçilenler arasında EN ÇOK benzediği kombinle kaç ortak parçası var.
+    private static int MaxSharedItems(Outfit candidate, List<Outfit> selected)
+    {
+        int max = 0;
+        foreach (var s in selected)
+        {
+            int shared = candidate.Items.Count(ci => s.Items.Any(si => si.Id == ci.Id));
+            if (shared > max) max = shared;
+        }
+        return max;
     }
 
     // ── Yardımcı: kategori hangi slota ait ──

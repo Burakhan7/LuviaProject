@@ -15,6 +15,7 @@ import torch.nn.functional as F
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import time
+from PIL import Image, ImageFilter
 from scipy import ndimage
 from firebase_admin import credentials, storage
 from rembg import remove
@@ -122,6 +123,32 @@ LAYERING = {
     "a jacket or cardigan worn over another top": "layered",
     "a single top worn alone": "single",
 }
+
+def enhance_for_display(cutout, target_min_side=800):
+    """
+    Kullanıcıya gösterilecek cutout'u netleştirir (kategori/renk analizini ETKİLEMEZ —
+    bu sadece kaydedilen görsele uygulanır). LANCZOS upscale + hafif keskinleştirme. Bedava.
+    """
+    # RGBA'yı koru (şeffaf arka plan)
+    img = cutout.convert("RGBA")
+    w, h = img.size
+    short_side = min(w, h)
+
+    # Parça küçükse büyüt (LANCZOS — klasik ama yüksek kaliteli)
+    if short_side < target_min_side:
+        scale = target_min_side / short_side
+        new_size = (int(w * scale), int(h * scale))
+        img = img.resize(new_size, Image.LANCZOS)
+
+    # Hafif keskinleştirme — büyütme sonrası yumuşamayı toparlar
+    # Alpha kanalını ayır, sadece RGB'ye keskinleştirme uygula (kenar bozulmasın)
+    r, g, b, a = img.split()
+    rgb = Image.merge("RGB", (r, g, b))
+    rgb = rgb.filter(ImageFilter.UnsharpMask(radius=1.5, percent=80, threshold=2))
+    r2, g2, b2 = rgb.split()
+    img = Image.merge("RGBA", (r2, g2, b2, a))
+
+    return img
 
 def kind_for(cat):
     if cat in SHOE_LABELS: return "shoes"
@@ -340,8 +367,9 @@ def analyze_part_image(cutout, category_from_seg, kind):
     white = Image.new("RGB", cutout.size, (255, 255, 255))
     white.paste(cutout, mask=cutout.split()[-1])
 
+    # KATEGORİ + renk: DEĞİŞMEDİ — white ve cutout mevcut haliyle analiz ediliyor
     category, _, cat_low = classify(white, CATEGORY)
-    result = {"category": category, "color": dominant_color_masked(cutout)} 
+    result = {"category": category, "color": dominant_color_masked(cutout)}
 
     OUTERWEAR = {"Jacket", "Coat", "Cardigan", "Blazer"}
     if category in OUTERWEAR:
@@ -356,9 +384,12 @@ def analyze_part_image(cutout, category_from_seg, kind):
             low_fields.append(field)
 
     result["lowConfidenceFields"] = low_fields
-    result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
-    return result, cutout   # ← cutout'u da döndür
+    result["processedImageUrl"] = None
 
+    # ── GÖSTERİM İÇİN kalite iyileştirme — analiz BİTTİKTEN sonra, sadece kaydedilecek görsele ──
+    display_cutout = enhance_for_display(cutout)
+
+    return result, display_cutout   # ← iyileştirilmiş cutout (kategori/renk zaten çıktı)
 def dominant_color_masked(rgba_cutout):
     """Sadece opak (kıyafet) pikselleri sayarak baskın rengi bulur. Beyaz zemin karışmaz."""
     import numpy as np
