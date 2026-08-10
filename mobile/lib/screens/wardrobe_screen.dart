@@ -132,7 +132,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
       final url = await _storage.pickAndUpload(
         source: source,
-        fullbody: fullbody,
       ); // ← source geçir
       if (url == null) {
         setState(() {

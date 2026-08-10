@@ -8,11 +8,11 @@ class StorageService {
 
   /// Galeriden foto seçtirir, Firebase Storage'a yükler, download URL döndürür.
   /// Kullanıcı iptal ederse null döner.
-  Future<String?> pickAndUpload({required ImageSource source, bool fullbody = false, }) async {
+  Future<String?> pickAndUpload({required ImageSource source, }) async {
     final XFile? picked = await _picker.pickImage(
       source: source, // ← parametreyi kullan, sabit değil
-          maxWidth: fullbody ? 2048 : 1280,   // ← boydan için daha yüksek
-    imageQuality: fullbody ? 92 : 88,
+          maxWidth:  1280,   // ← boydan için daha yüksek
+    imageQuality:  88,
      
     );
     if (picked == null) return null;
