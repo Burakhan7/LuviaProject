@@ -6,7 +6,7 @@ import '../models/outfit.dart';
 
 class ApiService {
   static const String baseUrl =
-      'http://192.168.1.37:5058'; // kendi ayarın (emülatör/cihaz) https://api.luviaapp.uk
+      'https://api.luviaapp.uk'; // kendi ayarın (emülatör/cihaz) https://api.luviaapp.uk http://192.168.1.37:5058
 
   // Giriş yapmış kullanıcının UID'si (sabit 'burak' yerine)
   String get _userId => FirebaseAuth.instance.currentUser?.uid ?? '';
