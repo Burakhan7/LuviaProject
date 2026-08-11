@@ -13,6 +13,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(
@@ -20,7 +24,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 // ── DI kayıtları ──────────────────────────────────────────────
-builder.Services.AddScoped<IImageAnalysisService, MockAnalysisService>();
+//builder.Services.AddScoped<IImageAnalysisService, MockAnalysisService>();
 builder.Services.AddScoped<IOutfitRecommender, RuleBasedRecommender>();
 builder.Services.AddScoped<IWardrobeItemRepository, EfWardrobeItemRepository>();
 builder.Services.AddScoped<AddWardrobeItemHandler>();
@@ -48,6 +52,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<LuviaDbContext>();
     db.Database.Migrate();
 }
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
@@ -130,19 +137,27 @@ app.MapPatch("/wardrobe/items/{id}/correct", async (
 
 
 app.MapGet("/outfits/{userId}", async (
-    string userId,
-    Season season,
-    Formality formality,
-    IWardrobeItemRepository repo,
-    IOutfitRecommender recommender,
+    string userId, Season season, Formality formality,
+    ColorName? preferredColor, Style? preferredStyle,
+    int? offset,
+    IWardrobeItemRepository repo, IOutfitRecommender recommender,
     CancellationToken ct) =>
 {
     var wardrobe = await repo.GetByUserAsync(userId, ct);
-    var context = new OutfitContext(season, formality);
-    var outfits = recommender.Recommend(wardrobe, context);
+    var context = new OutfitContext(season, formality, preferredColor, preferredStyle);
+    var result = recommender.Recommend(wardrobe, context,5, offset ?? 0);   // ← OutfitResult
 
-    // Sade bir çıktı — sadece kategori/renk + skor + gerekçe
-    var response = outfits.Select(o => new
+    // Eksik varsa: kombin yok, mesaj dön
+    if (result.MissingMessage is not null)
+    {
+        return Results.Ok(new
+        {
+            outfits = Array.Empty<object>(),
+            missingMessage = result.MissingMessage
+        });
+    }
+
+    var outfits = result.Outfits.Select(o => new
     {
         score = Math.Round(o.Score, 2),
         items = o.Items.Select(i => new {
@@ -150,13 +165,13 @@ app.MapGet("/outfits/{userId}", async (
             i.Color,
             i.Style,
             i.Kind,
-            i.ProcessedImageUrl,     // ← YENİ: görsel için
+            i.ProcessedImageUrl,
             i.IsLayered
         }),
         reasons = o.Reasons
     });
 
-    return Results.Ok(response);
+    return Results.Ok(new { outfits, missingMessage = (string?)null });
 });
 
 app.Run();

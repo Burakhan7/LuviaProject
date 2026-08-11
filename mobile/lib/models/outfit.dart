@@ -1,6 +1,14 @@
 // lib/models/outfit.dart
 import 'wardrobe_item.dart';
 
+// Kombin sonucu: ya kombinler ya eksik mesajı
+class OutfitResult {
+  final List<Outfit> outfits;
+  final String? missingMessage;
+
+  OutfitResult({required this.outfits, this.missingMessage});
+}
+
 class Outfit {
   final double score;
   final List<WardrobeItem> items;

@@ -19,7 +19,7 @@ class HomeScreenState extends State<HomeScreen> {
   final _api = ApiService();
   final _weather = WeatherService();
   late Future<List<WardrobeItem>> _wardrobeFuture;
-  Future<List<Outfit>>? _outfitFuture;
+  Future<OutfitResult>? _outfitFuture;
 
   WeatherResult? _currentWeather;
 
@@ -227,7 +227,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _heroResult() {
-    return FutureBuilder<List<Outfit>>(
+    return FutureBuilder<OutfitResult>(
       future: _outfitFuture,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -238,7 +238,8 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
-        final outfits = snap.data ?? [];
+        final result = snap.data;
+        final outfits = result?.outfits ?? [];
         if (outfits.isEmpty) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,

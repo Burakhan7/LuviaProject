@@ -7,14 +7,46 @@ using Luvia.Domain.Extensions;
 
 namespace Luvia.Application.Features.Outfits;
 
+public record OutfitResult(
+    IReadOnlyList<Outfit> Outfits,
+    string? MissingMessage = null
+);
+
 public class RuleBasedRecommender : IOutfitRecommender
 {
-    public IReadOnlyList<Outfit> Recommend(
+    public OutfitResult Recommend(
         IReadOnlyList<WardrobeItem> wardrobe,
         OutfitContext context,
-        int maxResults = 5)
+        int maxResults = 5,
+        int offset = 0)
     {
         wardrobe = wardrobe.Where(i => i.IsAvailable).ToList();
+
+        // ═══ EKSİK KONTROLÜ: seçilen renk/stilde parça yoksa kombin önerme, uyar ═══
+        if (context.PreferredColor is not null)
+        {
+            bool hasColor = wardrobe.Any(i => i.Color == context.PreferredColor.Value);
+            if (!hasColor)
+            {
+                return new OutfitResult(
+                    new List<Outfit>(),
+                    $"Dolabında {context.PreferredColor} renginde kıyafet yok. Bu renkte bir parça ekleyince öneri sunabilirim."
+                );
+            }
+        }
+
+        if (context.PreferredStyle is not null)
+        {
+            bool hasStyle = wardrobe.Any(i => i.Style == context.PreferredStyle.Value);
+            if (!hasStyle)
+            {
+                return new OutfitResult(
+                    new List<Outfit>(),
+                    $"Dolabında {context.PreferredStyle} tarzında kıyafet yok. Bu tarzda bir parça ekleyince öneri sunabilirim."
+                );
+            }
+        }
+
         // ── AŞAMA 1: Slot'lara ayır ──
         var tops = wardrobe.Where(i => i.Kind == ItemKind.Clothing && IsTop(i.Category)).ToList();
         var bottoms = wardrobe.Where(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category)).ToList();
@@ -23,7 +55,6 @@ public class RuleBasedRecommender : IOutfitRecommender
 
         var candidates = new List<Outfit>();
 
-
         // ── Aday kombinler üret (üst + alt + ayakkabı) ──
         foreach (var top in tops)
             foreach (var bottom in bottoms)
@@ -31,12 +62,10 @@ public class RuleBasedRecommender : IOutfitRecommender
                 {
                     var items = new List<WardrobeItem> { top, bottom, shoe };
 
-                    // AŞAMA 1: katı kısıt — geçmezse atla
                     if (!PassesHardConstraints(items, context))
                         continue;
 
-                    // AŞAMA 2: puanla + açıklama üret
-                    var (score, reasons) = ScoreOutfit(items);
+                    var (score, reasons) = ScoreOutfit(items, context);
                     candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
                 }
 
@@ -49,12 +78,15 @@ public class RuleBasedRecommender : IOutfitRecommender
                 if (!PassesHardConstraints(items, context))
                     continue;
 
-                var (score, reasons) = ScoreOutfit(items);
+                var (score, reasons) = ScoreOutfit(items, context);
                 candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
             }
 
-        return SelectDiverse(candidates, maxResults);
+        var selected = SelectDiverse(candidates, maxResults);
+        var page = selected.Skip(offset).Take(maxResults).ToList();
+        return new OutfitResult(page);
     }
+
     // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
     private static IReadOnlyList<Outfit> SelectDiverse(List<Outfit> candidates, int maxResults)
@@ -112,7 +144,6 @@ public class RuleBasedRecommender : IOutfitRecommender
         Category.Skirt or Category.Sweatpants;
 
     // ── KATI KISITLAR: geçersiz kombini ele (true = geçerli) ──
-
     private static bool PassesHardConstraints(List<WardrobeItem> items, OutfitContext ctx)
     {
         return SeasonCompatible(items, ctx.Season)
@@ -142,8 +173,8 @@ public class RuleBasedRecommender : IOutfitRecommender
     }
 
     // ── AŞAMA 2: PUANLAMA (0.0 - 1.0 skor + açıklamalar) ──
-
-    private static (double score, List<string> reasons) ScoreOutfit(List<WardrobeItem> items)
+    private static (double score, List<string> reasons) ScoreOutfit(
+        List<WardrobeItem> items, OutfitContext ctx)
     {
         var reasons = new List<string>();
 
@@ -151,7 +182,13 @@ public class RuleBasedRecommender : IOutfitRecommender
         double formality = ScoreFormality(items, reasons);
         double style = ScoreStyle(items, reasons);
 
-        double total = color * 0.5 + formality * 0.3 + style * 0.2;
+        // Tercih skorları (kullanıcı seçtiyse)
+        double colorPref = ScoreColorPreference(items, ctx.PreferredColor, reasons);
+        double stylePref = ScoreStylePreference(items, ctx.PreferredStyle, reasons);
+
+        double total = color * 0.35 + formality * 0.20 + style * 0.15
+                     + colorPref * 0.15 + stylePref * 0.15;
+
         return (total, reasons);
     }
 
@@ -196,5 +233,54 @@ public class RuleBasedRecommender : IOutfitRecommender
         if (ratio >= 0.66) { reasons.Add("Baskın stil uyumu"); return 0.75; }
         reasons.Add("Karışık stiller");
         return 0.4;
+    }
+
+    // Renk tercihi (Yorum B): 1-2 parça o renk = yüksek, hepsi = ceza, hiç = çok düşük
+    private static double ScoreColorPreference(
+        List<WardrobeItem> items, ColorName? preferred, List<string> reasons)
+    {
+        if (preferred is null) return 1.0;   // tercih yok → nötr
+
+        int matchCount = items.Count(i => i.Color == preferred.Value);
+        int total = items.Count;
+
+        if (matchCount == 0)
+        {
+            reasons.Add($"Seçilen renk ({preferred}) kombinde yok");
+            return 0.1;
+        }
+        if (matchCount == total)
+        {
+            reasons.Add($"Tamamen {preferred} — tek düze");
+            return 0.4;
+        }
+        reasons.Add($"{preferred} ön planda, dengeli");
+        return 1.0;
+    }
+
+    // Stil tercihi: baskın olsun ama katı değil
+    private static double ScoreStylePreference(
+        List<WardrobeItem> items, Style? preferred, List<string> reasons)
+    {
+        if (preferred is null) return 1.0;   // tercih yok → nötr
+
+        var styled = items.Where(i => i.Style is not null).ToList();
+        if (styled.Count == 0) return 0.5;
+
+        int matchCount = styled.Count(i => i.Style!.Value == preferred.Value);
+        double ratio = (double)matchCount / styled.Count;
+
+        if (ratio == 0)
+        {
+            reasons.Add($"Seçilen stil ({preferred}) kombinde yok");
+            return 0.1;
+        }
+        if (ratio >= 0.5)
+        {
+            reasons.Add($"{preferred} stili baskın");
+            return 1.0;
+        }
+        reasons.Add($"{preferred} stili var ama zayıf");
+        return 0.6;
     }
 }

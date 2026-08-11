@@ -9,5 +9,7 @@ namespace Luvia.Application.DTOs;
 /// </summary>
 public record OutfitContext(
     Season Season,
-    Formality TargetFormality
+    Formality TargetFormality,
+    ColorName? PreferredColor = null,   
+    Style? PreferredStyle = null        
 );

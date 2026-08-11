@@ -6,7 +6,7 @@ import '../models/outfit.dart';
 
 class ApiService {
   static const String baseUrl =
-      'https://api.luviaapp.uk'; // kendi ayarın (emülatör/cihaz) https://api.luviaapp.uk
+      'http://192.168.1.37:5058'; // kendi ayarın (emülatör/cihaz) https://api.luviaapp.uk
 
   // Giriş yapmış kullanıcının UID'si (sabit 'burak' yerine)
   String get _userId => FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -48,17 +48,41 @@ class ApiService {
     }
   }
 
-  Future<List<Outfit>> getOutfits(String season, String formality) async {
-    final response = await http.get(
-      Uri.parse(
-        '$baseUrl/outfits/$_userId?season=$season&formality=$formality',
-      ),
-    );
+  Future<OutfitResult> getOutfits(
+    String season,
+    String formality, {
+    String? preferredColor, // isteğe bağlı
+    String? preferredStyle, // isteğe bağlı
+    int offset = 0, // sonraki 5 için
+  }) async {
+    // Query parametrelerini oluştur
+    final params = <String, String>{
+      'season': season,
+      'formality': formality,
+      'offset': offset.toString(),
+    };
+    if (preferredColor != null) params['preferredColor'] = preferredColor;
+    if (preferredStyle != null) params['preferredStyle'] = preferredStyle;
+
+    final uri = Uri.parse(
+      '$baseUrl/outfits/$_userId',
+    ).replace(queryParameters: params);
+    final response = await http.get(uri);
+
     if (response.statusCode != 200) {
       throw Exception('Kombin önerisi alınamadı: ${response.statusCode}');
     }
-    final List<dynamic> data = jsonDecode(response.body);
-    return data.map((json) => Outfit.fromJson(json)).toList();
+
+    final Map<String, dynamic> data = jsonDecode(response.body);
+
+    // Eksik mesajı varsa
+    final missingMessage = data['missingMessage'] as String?;
+
+    // Kombinleri parse et
+    final List<dynamic> outfitsJson = data['outfits'] ?? [];
+    final outfits = outfitsJson.map((json) => Outfit.fromJson(json)).toList();
+
+    return OutfitResult(outfits: outfits, missingMessage: missingMessage);
   }
 
   Future<void> deleteItem(String id) async {

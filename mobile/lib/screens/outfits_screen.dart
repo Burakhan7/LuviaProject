@@ -14,7 +14,7 @@ class OutfitsScreen extends StatefulWidget {
 
 class _OutfitsScreenState extends State<OutfitsScreen> {
   final _api = ApiService();
-  Future<List<Outfit>>? _future;
+  Future<OutfitResult>? _future;
   final _weather = WeatherService();
 
   String _season = 'MidSeason';
@@ -22,13 +22,90 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
   bool _useWeather = false; // ← toggle durumu
   WeatherResult? _weatherResult;
   bool _weatherLoading = false;
+  bool _useColor = false; // renk toggle açık mı
+  String? _selectedColor; // seçilen renk
+  bool _useStyle = false; // stil toggle açık mı
+  String? _selectedStyle; // seçilen stil
+  int _offset = 0; // şu anki offset
+  String? _lastContextKey; // son kullanılan bağlam (değişti mi anlamak için)
+  String _currentContextKey() {
+    final color = _useColor ? _selectedColor : null;
+    final style = _useStyle ? _selectedStyle : null;
+    return '$_season|$_formality|$color|$style';
+  }
+
+  String get _buttonLabel {
+    // Aynı bağlamda daha önce öneri alındıysa "Başka Öner"
+    final sameContext = _currentContextKey() == _lastContextKey;
+    return sameContext ? 'Başka Öner' : 'Kombin Oluştur';
+  }
+
+  final _colors = {
+    'Black': 'Siyah',
+    'White': 'Beyaz',
+    'Gray': 'Gri',
+    'Red': 'Kırmızı',
+    'Burgundy': 'Bordo',
+    'Orange': 'Turuncu',
+    'Yellow': 'Sarı',
+    'Green': 'Yeşil',
+    'Khaki': 'Haki',
+    'Blue': 'Mavi',
+    'Navy': 'Lacivert',
+    'Turquoise': 'Turkuaz',
+    'Purple': 'Mor',
+    'Pink': 'Pembe',
+    'Brown': 'Kahve',
+    'Beige': 'Bej',
+    'Cream': 'Krem',
+  };
+  final _styles = {
+    'Casual': 'Günlük',
+    'Sporty': 'Sportif',
+    'Classic': 'Klasik',
+    'Streetwear': 'Sokak',
+    'Minimal': 'Minimal',
+    'Bohemian': 'Bohem',
+  };
+
+  void _onContextChanged() {
+    setState(() {
+      _offset = 0;
+      _lastContextKey = null; // bağlam sıfırlandı işareti
+    });
+  }
 
   void _generate() {
+    final contextKey = _currentContextKey();
+
+    if (contextKey == _lastContextKey) {
+      // Aynı bağlam → sonraki 5
+      _offset += 5;
+      if (_offset > 10) {
+        // 4. basış → yeterli (0,5,10 kullanıldı, 15 sınır)
+        _offset = 10;
+        // İstersen kullanıcıya "hepsi bu kadar" mesajı göster
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu bağlam için yeterince öneri gösterdik'),
+          ),
+        );
+        return;
+      }
+    } else {
+      // Bağlam değişti → baştan başla
+      _offset = 0;
+      _lastContextKey = contextKey;
+    }
+
     setState(() {
       _future = _api.getOutfits(
         _season,
         _formality,
-      ); // await YOK — sadece Future'ı ata
+        preferredColor: _useColor ? _selectedColor : null,
+        preferredStyle: _useStyle ? _selectedStyle : null,
+        offset: _offset, // ← offset'i geçir
+      );
     });
   }
 
@@ -105,6 +182,61 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
     super.dispose();
   }
 
+  Widget _prefToggle({
+    required IconData icon,
+    required String label,
+    required bool enabled,
+    required ValueChanged<bool> onToggle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: LuviaTheme.primary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
+          Transform.scale(
+            scale: 0.85,
+            child: Switch(
+              value: enabled,
+              onChanged: onToggle,
+              activeColor: LuviaTheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _prefChips(
+    Map<String, String> options,
+    String? selected,
+    ValueChanged<String> onSelect,
+  ) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: options.entries.map((e) {
+        final sel = e.key == selected;
+        return ChoiceChip(
+          label: Text(e.value),
+          selected: sel,
+          onSelected: (_) => onSelect(e.key),
+          selectedColor: LuviaTheme.primary,
+          labelStyle: TextStyle(
+            color: sel ? Colors.white : Colors.black87,
+            fontSize: 12,
+          ),
+          backgroundColor: Colors.white,
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -154,7 +286,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                         child: Switch(
                           value: _useWeather,
                           onChanged: _toggleWeather,
-
+                          
                           activeColor: LuviaTheme.primary,
                         ),
                       ),
@@ -179,7 +311,10 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                       selected: _season,
                       onChanged: _useWeather
                           ? null
-                          : (v) => setState(() => _season = v),
+                          : (v) => setState(() {
+                              _season = v;
+                              _onContextChanged();
+                            }),
                     ),
                   ],
                 ),
@@ -195,19 +330,75 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                       controller: _formalityController,
                       map: _formalities,
                       selected: _formality,
-                      onChanged: (v) => setState(() => _formality = v),
+                      onChanged: (v) => setState(() {
+                        _formality = v;
+                        _onContextChanged();
+                      }),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          // Renk toggle (isteğe bağlı)
+          _prefToggle(
+            icon: Icons.palette_outlined,
+            label: 'Renk tercihi',
+            enabled: _useColor,
+            onToggle: (v) => setState(() {
+              _useColor = v;
+              _onContextChanged();
+              if (!v)
+                _selectedColor = null; // kapatınca temizle
+              else
+                _selectedColor ??= _colors.keys.first; // açınca varsayılan
+            }),
+          ),
+          // Renk açıksa seçici göster
+          if (_useColor) ...[
+            const SizedBox(height: 8),
+            _prefChips(
+              _colors,
+              _selectedColor,
+              (v) => setState(() {
+                _selectedColor = v;
+                _onContextChanged();
+              }),
+            ),
+          ],
+          const SizedBox(height: 12),
+
+          // Stil toggle (isteğe bağlı)
+          _prefToggle(
+            icon: Icons.style_outlined,
+            label: 'Stil tercihi',
+            enabled: _useStyle,
+            onToggle: (v) => setState(() {
+              _useStyle = v;
+              _onContextChanged();
+              if (!v)
+                _selectedStyle = null;
+              else
+                _selectedStyle ??= _styles.keys.first;
+            }),
+          ),
+          if (_useStyle) ...[
+            const SizedBox(height: 8),
+            _prefChips(
+              _styles,
+              _selectedStyle,
+              (v) => setState(() {
+                _selectedStyle = v;
+                _onContextChanged();
+              }),
+            ),
+          ],
 
           FilledButton.icon(
             onPressed: _generate,
             icon: const Icon(Icons.auto_awesome),
-            label: const Text('Kombin Oluştur'),
+            label: Text(_buttonLabel),
             style: FilledButton.styleFrom(
               backgroundColor: LuviaTheme.primary,
               minimumSize: const Size.fromHeight(52),
@@ -335,7 +526,8 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
   }
 
   Widget _results() {
-    return FutureBuilder<List<Outfit>>(
+    return FutureBuilder<OutfitResult>(
+      // ← OutfitResult
       future: _future,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -346,40 +538,53 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             ),
           );
         }
-        if (snap.hasError) return Center(child: Text('Hata: ${snap.error}'));
-        final outfits = snap.data ?? [];
+        if (snap.hasError) {
+          return Center(child: Text('Hata: ${snap.error}'));
+        }
+
+        final result = snap.data;
+        if (result == null) return const SizedBox();
+
+        // Eksik mesajı varsa — kombin yerine onu göster
+        if (result?.missingMessage != null)
+          return _missingCard(result!.missingMessage!);
+
+        final outfits = result?.outfits ?? [];
         if (outfits.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Column(
-              children: [
-                Icon(
-                  Icons.sentiment_dissatisfied,
-                  size: 40,
-                  color: Colors.black26,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Bu bağlama uygun kombin bulunamadı.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black54),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Daha fazla kıyafet ekle ya da bağlamı değiştir.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.black38),
-                ),
-              ],
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Bu bağlama uygun kombin bulunamadı.'),
             ),
           );
         }
-        return Column(children: outfits.map(_outfitCard).toList());
+
+        // Kombinleri göster (mevcut kart mantığın)
+        return Column(children: outfits.map((o) => _outfitCard(o)).toList());
       },
+    );
+  }
+
+  Widget _missingCard(String message) {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: LuviaTheme.bgTop,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: LuviaTheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

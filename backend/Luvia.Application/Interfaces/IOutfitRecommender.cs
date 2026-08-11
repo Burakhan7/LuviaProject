@@ -1,7 +1,7 @@
 // Interfaces/IOutfitRecommender.cs
 using Luvia.Application.DTOs;
 using Luvia.Domain.Entities;
-
+using Luvia.Application.Features.Outfits;
 namespace Luvia.Application.Interfaces;
 
 /// <summary>
@@ -10,8 +10,10 @@ namespace Luvia.Application.Interfaces;
 /// </summary>
 public interface IOutfitRecommender
 {
-    IReadOnlyList<Outfit> Recommend(
+    OutfitResult Recommend(  
         IReadOnlyList<WardrobeItem> wardrobe,
         OutfitContext context,
-        int maxResults = 5);
+        int maxResults = 5,
+         int offset = 0
+        );
 }
