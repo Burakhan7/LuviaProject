@@ -17,6 +17,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   final _storage = StorageService();
   late Future<List<WardrobeItem>> _future;
   bool _uploading = false;
+  bool _bulkUploading = false; // toplu yükleme sürüyor mu
+  int _bulkCurrent = 0; // şu an kaçıncı foto
+  int _bulkTotal = 0; // toplam kaç foto
+  int _bulkFailed = 0; // kaç tanesi başarısız
 
   String _selectedFilter = 'Tümü';
 
@@ -119,6 +123,86 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       default:
         return true;
     }
+  }
+
+  Future<void> _processSequentially(List<XFile> files, bool fullbody) async {
+    setState(() {
+      _bulkUploading = true;
+      _bulkTotal = files.length;
+      _bulkCurrent = 0;
+      _bulkFailed = 0;
+    });
+
+    for (int i = 0; i < files.length; i++) {
+      setState(() => _bulkCurrent = i + 1); // "3/5" için
+
+      try {
+        // 1. Firebase'e yükle
+        final bytes = await files[i].readAsBytes();
+        final url = await _storage.uploadBytes(bytes);
+
+        // 2. Backend'e gönder (tek mi boydan mı)
+        if (fullbody) {
+          await _api.addFullbody(url);
+        } else {
+          await _api.addItem(url);
+        }
+
+        // Her başarılı foto sonrası galeriyi tazele (canlı görünsün)
+        _refresh();
+      } catch (e) {
+        _bulkFailed++; // bu foto başarısız, ama devam et
+        print('>>> Foto ${i + 1} başarısız: $e');
+      }
+    }
+
+    // Bitti — özet göster
+    setState(() => _bulkUploading = false);
+    _showBulkSummary();
+  }
+
+  void _showBulkSummary() {
+    final success = _bulkTotal - _bulkFailed;
+    final msg = _bulkFailed == 0
+        ? '$success kıyafet eklendi'
+        : '$success eklendi, $_bulkFailed başarısız';
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _addMultiple({required bool fullbody}) async {
+    final maxCount = fullbody ? 3 : 5; // boydan 3, tek parça 5
+
+    final picked = await _storage.pickMultiple(maxCount: maxCount);
+
+    // Limit aşıldı → popup
+    if (picked == null) {
+      _showLimitPopup(maxCount);
+      return;
+    }
+    // İptal → sessiz
+    if (picked.isEmpty) return;
+
+    // Sıralı işle (Adım 2'de dolduracağız)
+    await _processSequentially(picked, fullbody);
+  }
+
+  void _showLimitPopup(int maxCount) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Çok fazla fotoğraf'),
+        content: Text(
+          'En fazla $maxCount fotoğraf seçebilirsin. Lütfen tekrar seç.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _add({
@@ -491,7 +575,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         IconButton(
           onPressed: () {
             Navigator.pop(context);
-            _add(fullbody: fullbody, source: ImageSource.gallery);
+            _addMultiple(fullbody: fullbody);
           },
           icon: const Icon(Icons.photo_library),
           color: LuviaTheme.primary,
@@ -584,6 +668,45 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
             ),
             _filterBar(),
+            // build içinde, uygun bir yere (örn. Stack ile overlay ya da üstte banner)
+            if (_bulkUploading)
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: LuviaTheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Kıyafetler ekleniyor... $_bulkCurrent/$_bulkTotal',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: _bulkTotal > 0 ? _bulkCurrent / _bulkTotal : 0,
+                        backgroundColor: Colors.white,
+                        color: LuviaTheme.primary,
+                        minHeight: 6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 12),
             Expanded(
               child: FutureBuilder<List<WardrobeItem>>(

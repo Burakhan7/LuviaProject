@@ -8,12 +8,11 @@ class StorageService {
 
   /// Galeriden foto seçtirir, Firebase Storage'a yükler, download URL döndürür.
   /// Kullanıcı iptal ederse null döner.
-  Future<String?> pickAndUpload({required ImageSource source, }) async {
+  Future<String?> pickAndUpload({required ImageSource source}) async {
     final XFile? picked = await _picker.pickImage(
       source: source, // ← parametreyi kullan, sabit değil
-          maxWidth:  1280,   // ← boydan için daha yüksek
-    imageQuality:  88,
-     
+      maxWidth: 1280, // ← boydan için daha yüksek
+      imageQuality: 88,
     );
     if (picked == null) return null;
 
@@ -21,6 +20,27 @@ class StorageService {
     final fileName = 'uploads/${DateTime.now().millisecondsSinceEpoch}.png';
     final ref = FirebaseStorage.instance.ref().child(fileName);
 
+    await ref.putData(bytes, SettableMetadata(contentType: 'image/png'));
+    return await ref.getDownloadURL();
+  }
+
+  // Çoklu foto seç — limit aşılırsa null döner (çağıran popup gösterir)
+  Future<List<XFile>?> pickMultiple({required int maxCount}) async {
+    final List<XFile> picked = await _picker.pickMultiImage();
+
+    if (picked.isEmpty) return []; // hiç seçmedi (iptal) → boş liste
+
+    if (picked.length > maxCount) {
+      return null; // limit aşıldı → null (çağıran uyaracak)
+    }
+
+    return picked; // uygun sayıda → listeyi dön
+  }
+
+  // Byte'ları Firebase'e yükle, URL döndür (çoklu yükleme için — seçim ayrı yapılır)
+  Future<String> uploadBytes(Uint8List bytes) async {
+    final fileName = 'uploads/${DateTime.now().millisecondsSinceEpoch}.png';
+    final ref = FirebaseStorage.instance.ref().child(fileName);
     await ref.putData(bytes, SettableMetadata(contentType: 'image/png'));
     return await ref.getDownloadURL();
   }
