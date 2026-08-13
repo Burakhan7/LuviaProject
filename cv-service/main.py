@@ -189,7 +189,6 @@ def dominant_color(img):
 _COLOR_REFS = {
     "Black":     (20, 20, 20),
     "Gray":      (128, 128, 128),
-    "Gray":      (135, 135, 135),
     "White":     (225, 225, 225),
     "Beige":     (225, 200, 165),
     "Khaki":     (140, 130, 90),
@@ -227,7 +226,12 @@ def color_name(rgb):
     # ── NÖTR BÖLGE ──
     if chroma < 18:
         if L < 28:
-            return "Brown" if b > 8 else "Black"
+            # Koyu bölge: siyah / lacivert / koyu kahve ayrımı
+            if b < -7:
+                return "Navy"          # koyu + maviye kaçıyor → lacivert
+            if b > 2:
+                return "Brown"         # koyu + sıcak ton → koyu kahve
+            return "Black"             # koyu + renksiz → siyah
         elif L < 55:
             return "Gray"
         else:
