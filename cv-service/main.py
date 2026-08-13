@@ -6,7 +6,7 @@ import requests
 import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from PIL import Image
+from PIL import Image, ImageOps
 from transformers import CLIPModel, CLIPProcessor
 import uuid
 import firebase_admin
@@ -155,7 +155,9 @@ def download_image(url: str) -> Image.Image:
     try:
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        return Image.open(BytesIO(resp.content)).convert("RGB")
+        img = Image.open(BytesIO(resp.content))
+        img = ImageOps.exif_transpose(img)
+        return img.convert("RGB")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Görüntü indirilemedi: {e}")
 
