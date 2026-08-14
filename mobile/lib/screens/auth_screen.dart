@@ -27,12 +27,34 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _loading = true);
     final error = _isLogin
         ? await _auth.signIn(email, pass)
-        : await _auth.signUp(email, pass);
+        : await _auth.signUp(email, pass); // signUp misafiri otomatik yükseltir
     if (!mounted) return;
     setState(() => _loading = false);
 
-    if (error != null) _snack(error);
-    // Başarılıysa: authState stream otomatik yönlendirir, burada bir şey yapma
+    if (error != null) {
+      _snack(error);
+    } else {
+      // Başarılı: bu ekrandan çık (kullanıcı artık gerçek hesapla içeride)
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      _snack('Önce e-posta adresini gir, sonra "Şifremi unuttum"a bas.');
+      return;
+    }
+    setState(() => _loading = true);
+    final error = await _auth.resetPassword(email);
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (error != null) {
+      _snack(error);
+    } else {
+      _snack('Şifre sıfırlama bağlantısı e-postana gönderildi.');
+    }
   }
 
   void _snack(String msg) =>
@@ -40,17 +62,27 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isGuest = _auth.isGuest; // misafirse "hesabını güvene al" vurgusu
+
     return Container(
       decoration: LuviaTheme.bg,
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: LuviaTheme.primary),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ),
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(28),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
                   const Icon(
                     Icons.checkroom,
                     size: 60,
@@ -68,7 +100,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _isLogin ? 'Tekrar hoş geldin' : 'Hesap oluştur',
+                    _isLogin
+                        ? 'Tekrar hoş geldin'
+                        : (isGuest
+                              ? 'Hesabını güvene al, kıyafetlerin kaybolmasın'
+                              : 'Hesap oluştur'),
+                    textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 15, color: Colors.black54),
                   ),
                   const SizedBox(height: 32),
@@ -76,7 +113,23 @@ class _AuthScreenState extends State<AuthScreen> {
                   _field(_emailCtrl, 'E-posta', Icons.email_outlined, false),
                   const SizedBox(height: 14),
                   _field(_passCtrl, 'Şifre', Icons.lock_outline, true),
-                  const SizedBox(height: 24),
+
+                  // Şifremi unuttum — sadece giriş modunda göster
+                  if (_isLogin)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _loading ? null : _forgotPassword,
+                        child: const Text(
+                          'Şifremi unuttum',
+                          style: TextStyle(
+                            color: LuviaTheme.primary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
 
                   SizedBox(
                     width: double.infinity,

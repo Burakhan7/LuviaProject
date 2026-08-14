@@ -33,8 +33,18 @@ class LuviaApp extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          // Giriş yapmışsa ana uygulama, yapmamışsa giriş ekranı
-          return snapshot.hasData ? const MainShell() : const AuthScreen();
+
+          // Kullanıcı yoksa (ilk açılış) → arka planda anonim giriş yap
+          if (!snapshot.hasData) {
+            FirebaseAuth.instance.signInAnonymously();
+            // Anonim giriş tamamlanana kadar kısa bir yükleme göster
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // Kullanıcı var (anonim veya gerçek) → direkt içeri
+          return const MainShell();
         },
       ),
     );

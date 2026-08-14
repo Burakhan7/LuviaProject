@@ -783,7 +783,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                                               imageUrl: item.processedImageUrl!,
                                               fit: BoxFit.cover,
                                               memCacheWidth:
-                                                  300, // gösterilecek boyutta cache — bellek + hız
+                                                  600, // gösterilecek boyutta cache — bellek + hız
                                               placeholder: (context, url) =>
                                                   Container(
                                                     color: LuviaTheme.bgTop,

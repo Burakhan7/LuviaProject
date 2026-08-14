@@ -1,11 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mobile/services/weather_service.dart';
 import '../models/wardrobe_item.dart';
 import '../models/outfit.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
-import '../services/weather_service.dart';
+import '../services/auth_service.dart';
+import 'auth_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(int)? onNavigateToTab;
@@ -22,6 +24,9 @@ class HomeScreenState extends State<HomeScreen> {
   Future<OutfitResult>? _outfitFuture;
 
   WeatherResult? _currentWeather;
+  DailyForecast? _todayForecast; // ← YENİ
+  WeatherStatus? _forecastStatus; // ← YENİ: neden yok, onu bilelim
+  final _auth = AuthService();
 
   @override
   void initState() {
@@ -31,9 +36,14 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadWeather() async {
-    final w = await _weather.getWeather();
+    final outcome = await _weather.getWeather();
+    final forecastOutcome = await _weather.getTodayForecast();
     if (mounted) {
-      setState(() => _currentWeather = w);
+      setState(() {
+        _currentWeather = outcome.result;
+        _todayForecast = forecastOutcome.forecast;
+        _forecastStatus = forecastOutcome.status;
+      });
     }
   }
 
@@ -45,7 +55,11 @@ class HomeScreenState extends State<HomeScreen> {
 
   // Varsayılan bağlamla kombin öner
   void _suggestOutfit() {
-    final season = _currentWeather?.season ?? WeatherService.seasonFromMonth();
+    // Forecast varsa günün geneline göre, yoksa anlık, o da yoksa aya göre
+    final season =
+        _todayForecast?.season ??
+        _currentWeather?.season ??
+        WeatherService.seasonFromMonth();
     setState(() {
       _outfitFuture = _api.getOutfits(season, 'Casual');
     });
@@ -53,9 +67,79 @@ class HomeScreenState extends State<HomeScreen> {
 
   String get _greeting {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Günaydın';
-    if (h < 18) return 'İyi günler';
+    if (6 < h && h < 12) return 'Günaydın';
+    if (h > 12 && h < 18) return 'İyi günler';
     return 'İyi akşamlar';
+  }
+
+  Widget _guestBanner(int itemCount) {
+    // Sadece misafirse göster; gerçek kullanıcıya hiç gösterme
+    if (!_auth.isGuest) return const SizedBox.shrink();
+
+    // Kıyafet sayısına göre mesaj tonu artar
+    String msg;
+    Color bgColor;
+    if (itemCount == 0) {
+      msg =
+          'Misafir modundasın. Kaydol veya Giriş yap, kıyafetlerini kalıcı olarak sakla.';
+      bgColor = LuviaTheme.primary.withValues(alpha: 0.08);
+    } else if (itemCount < 10) {
+      msg =
+          '$itemCount kıyafetin var. Kaydolmazsan kaybolabilir — hesabını güvene al.';
+      bgColor = Colors.orange.withValues(alpha: 0.12);
+    } else {
+      msg =
+          '$itemCount kıyafet biriktirdin! Bunları kaybetmemek için hemen kaydol.';
+      bgColor = Colors.red.withValues(alpha: 0.10);
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 20, color: LuviaTheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              msg,
+              style: const TextStyle(fontSize: 12.5, color: Colors.black87),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _openAuth,
+            style: FilledButton.styleFrom(
+              backgroundColor: LuviaTheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text(
+              'Kaydol veya Giriş Yap',
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openAuth() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AuthScreen()));
+    // Kayıt/giriş sonrası dönünce ekranı tazele (banner kaybolsun, veriler güncellensin)
+    if (mounted) {
+      setState(() {
+        _wardrobeFuture = _api.getWardrobe();
+      });
+    }
   }
 
   @override
@@ -128,6 +212,9 @@ class HomeScreenState extends State<HomeScreen> {
                   ],
                 ],
               ),
+              _guestBanner(items.length),
+              _forecastCard(), // ← YENİ: bugün hava böyle ilerleyecek
+              const SizedBox(height: 20),
               const Text(
                 'Bugün ne giysek?',
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -158,6 +245,150 @@ class HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
+  }
+
+  Widget _forecastCard() {
+    final f = _todayForecast;
+    if (f == null)
+      return _weatherPermissionCard(); // forecast yoksa hiçbir şey gösterme
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.wb_cloudy_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                f.city != null ? 'Bugün · ${f.city}' : 'Bugün',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${f.minTemp.round()}° / ${f.maxTemp.round()}°',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            f.advice,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _weatherPermissionCard() {
+    // Konum servisi kapalıysa veya izin yoksa davet göster.
+    // Hata/bilinmeyen durumda hiçbir şey gösterme (kullanıcıyı boşuna rahatsız etme).
+    if (_forecastStatus == null || _forecastStatus == WeatherStatus.error) {
+      return const SizedBox.shrink();
+    }
+
+    String msg;
+    if (_forecastStatus == WeatherStatus.serviceDisabled) {
+      msg = 'Konum servisin kapalı. Aç, günün havasına göre kombin önerelim.';
+    } else {
+      msg = 'Konum izni ver, günün gidişatına göre sana kombin önerelim.';
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LuviaTheme.primary.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.location_on_outlined,
+            color: LuviaTheme.primary,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Hava durumuna göre öneri',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  msg,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _requestLocationPermission,
+            style: FilledButton.styleFrom(
+              backgroundColor: LuviaTheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+            ),
+            child: const Text('İzin Ver'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _requestLocationPermission() async {
+    if (_forecastStatus == WeatherStatus.serviceDisabled) {
+      // Konum servisi kapalı → sistem ayarlarına yönlendir
+      await Geolocator.openLocationSettings();
+    } else if (_forecastStatus == WeatherStatus.deniedForever) {
+      // Kalıcı red → uygulama ayarlarına
+      await Geolocator.openAppSettings();
+    } else {
+      // Normal red → izin iste
+      await Geolocator.requestPermission();
+    }
+    // Kullanıcı ayarlardan dönünce tekrar dene
+    _loadWeather();
   }
 
   Widget _heroCard() {

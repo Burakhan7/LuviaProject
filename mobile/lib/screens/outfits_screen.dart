@@ -1,6 +1,7 @@
 // lib/screens/outfits_screen.dart
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/outfit.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -114,37 +115,70 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       setState(() => _useWeather = false);
       return;
     }
-
     setState(() => _weatherLoading = true);
-
-    final w = await _weather.getWeather();
-
+    final outcome = await _weather.getWeather();
     if (!mounted) return;
     setState(() => _weatherLoading = false);
 
-    if (w == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Konum izni gerekli. Hava durumu kullanılamıyor.'),
-        ),
-      );
+    if (outcome.status != WeatherStatus.ok || outcome.result == null) {
+      _handleWeatherError(outcome.status);
       setState(() => _useWeather = false);
       return;
     }
 
-    // Hava geldi — mevsimi ayarla ve kilitle
+    final w = outcome.result!;
     setState(() {
       _weatherResult = w;
       _season = w.season;
       _useWeather = true;
     });
-
-    // Tekerleği doğru mevsime kaydır
     final targetIndex = _seasons.keys.toList().indexOf(w.season);
     _seasonController.animateToItem(
       targetIndex,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOut,
+    );
+  }
+
+  void _handleWeatherError(WeatherStatus status) {
+    String msg;
+    bool showSettings = false;
+
+    switch (status) {
+      case WeatherStatus.serviceDisabled:
+        msg = 'Konum servisi kapalı. Lütfen telefonun konumunu açın.';
+        break;
+      case WeatherStatus.deniedForever:
+        msg = 'Konum izni kalıcı olarak reddedilmiş. Ayarlardan izin vermelisin.';
+        showSettings = true;
+        break;
+      case WeatherStatus.denied:
+        msg = 'Hava durumuna göre öneri için konum izni gerekli.';
+        break;
+      default:
+        msg = 'Konum alınamadı. Lütfen tekrar dene.';
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Konum İzni'),
+        content: Text(msg),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tamam'),
+          ),
+          if (showSettings)
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Geolocator.openAppSettings();
+              },
+              child: const Text('Ayarları Aç'),
+            ),
+        ],
+      ),
     );
   }
 

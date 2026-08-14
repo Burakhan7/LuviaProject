@@ -11,8 +11,8 @@ class StorageService {
   Future<String?> pickAndUpload({required ImageSource source}) async {
     final XFile? picked = await _picker.pickImage(
       source: source, // ← parametreyi kullan, sabit değil
-      maxWidth: 1280, // ← boydan için daha yüksek
-      imageQuality: 88,
+      // maxWidth: 1600, // çok yüksek çözünürlük, neredeyse ham kalite
+      // imageQuality: 92, // gözle ham'dan ayırt edilemez
     );
     if (picked == null) return null;
 
@@ -26,7 +26,10 @@ class StorageService {
 
   // Çoklu foto seç — limit aşılırsa null döner (çağıran popup gösterir)
   Future<List<XFile>?> pickMultiple({required int maxCount}) async {
-    final List<XFile> picked = await _picker.pickMultiImage();
+    final List<XFile> picked = await _picker.pickMultiImage(
+      // maxWidth: 2000, // çok yüksek çözünürlük, neredeyse ham kalite
+      // imageQuality: 95, // gözle ham'dan ayırt edilemez
+    );
 
     if (picked.isEmpty) return []; // hiç seçmedi (iptal) → boş liste
 
