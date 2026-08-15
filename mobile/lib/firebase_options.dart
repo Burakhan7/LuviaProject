@@ -23,20 +23,11 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -50,20 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCsTniYUSFPHW8O9PBWAd2BrxvzK4hDwrY',
-    appId: '1:210679891391:web:e9488c964e189bbb078d0a',
+    apiKey: 'AIzaSyC11UwNTtLzu0JlfPVKdQYQJ9NIVBMk6rg',
+    appId: '1:210679891391:web:c69d532efffd7557078d0a',
     messagingSenderId: '210679891391',
     projectId: 'kombinv1',
     authDomain: 'kombinv1.firebaseapp.com',
     storageBucket: 'kombinv1.firebasestorage.app',
-    measurementId: 'G-CFTLWMJM8G',
+    measurementId: 'G-6FJVWG0NX9',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCmkTeBi9omR9ZnpPwkrVDRW9Q1n3A8QNo',
-    appId: '1:210679891391:android:d5f1f458ceb9267f078d0a',
+    appId: '1:210679891391:android:8cf650ad7dba9fc0078d0a',
     messagingSenderId: '210679891391',
     projectId: 'kombinv1',
     storageBucket: 'kombinv1.firebasestorage.app',
   );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBMQ3s3OXdq-ZawSZ8uF_S5ymcdySXqe-k',
+    appId: '1:210679891391:ios:455f92f12db39260078d0a',
+    messagingSenderId: '210679891391',
+    projectId: 'kombinv1',
+    storageBucket: 'kombinv1.firebasestorage.app',
+    iosBundleId: 'com.example.mobile',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBMQ3s3OXdq-ZawSZ8uF_S5ymcdySXqe-k',
+    appId: '1:210679891391:ios:3c00c609b7536e8b078d0a',
+    messagingSenderId: '210679891391',
+    projectId: 'kombinv1',
+    storageBucket: 'kombinv1.firebasestorage.app',
+    iosBundleId: 'com.bglabs.luvia',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyC11UwNTtLzu0JlfPVKdQYQJ9NIVBMk6rg',
+    appId: '1:210679891391:web:c69d532efffd7557078d0a',
+    messagingSenderId: '210679891391',
+    projectId: 'kombinv1',
+    authDomain: 'kombinv1.firebaseapp.com',
+    storageBucket: 'kombinv1.firebasestorage.app',
+    measurementId: 'G-6FJVWG0NX9',
+  );
+
 }
