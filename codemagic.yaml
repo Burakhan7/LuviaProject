@@ -11,6 +11,8 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.bglabs.luvia
       flutter: stable
+      xcode: latest
+      cocoapods: default
     scripts:
       - name: Set up code signing
         script: |
@@ -20,17 +22,18 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
-      - name: Flutter packages get
+      - name: Get Flutter packages
         script: |
           flutter packages pub get
       - name: Install CocoaPods dependencies
         script: |
-          find . -name "Podfile" -execdir pod install \;
+          cd ios && pod install
       - name: Flutter build ipa
         script: |
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist
     artifacts:
+      - mobile/build/ios/ipa/*.ipa
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
