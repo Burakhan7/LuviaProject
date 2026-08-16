@@ -9,6 +9,7 @@ import 'screens/outfits_screen.dart';
 import 'screens/profile_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/auth_screen.dart';
+import 'screens/studio_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,6 +69,7 @@ class _MainShellState extends State<MainShell> {
     HomeScreen(key: _homeKey, onNavigateToTab: _goToTab), // index 0
     const WardrobeScreen(), // index 1
     const OutfitsScreen(), // index 2
+    const StudioScreen(), // index 3 — Oluştur
     ProfileScreen(key: _profileKey),
   ];
 
@@ -109,6 +111,11 @@ class _MainShellState extends State<MainShell> {
               icon: Icon(Icons.auto_awesome_outlined),
               selectedIcon: Icon(Icons.auto_awesome),
               label: 'Kombin',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.add_box_outlined),
+              selectedIcon: Icon(Icons.add_box),
+              label: 'Oluştur',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),

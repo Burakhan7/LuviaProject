@@ -123,4 +123,34 @@ class ApiService {
     if (response.statusCode != 200)
       throw Exception('Düzeltilemedi: ${response.statusCode}');
   }
+
+  // Manuel kombin değerlendirme — seçilen parçaları backend'e gönderir, skor + yorum alır
+  Future<({int score, List<String> comments})> evaluateOutfit(
+    List<String> itemIds,
+    String season,
+  ) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/outfits/evaluate'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': _userId,
+        'itemIds': itemIds,
+        'season': season,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Değerlendirme yapılamadı: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    final score = data['score'] as int;
+    final comments = (data['comments'] as List<dynamic>)
+        .map((c) => c.toString())
+        .toList();
+
+    return (score: score, comments: comments);
+  }
 }
