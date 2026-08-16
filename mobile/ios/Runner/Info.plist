@@ -6,10 +6,14 @@
 		<string>Konumunuza uygun öneriler ve bölgesel içerikler sunabilmek için konum iznine ihtiyaç duyulmaktadır.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>Uygulama deneyiminizi iyileştirmek ve konuma dayalı özellikleri sunabilmek için konum iznine ihtiyaç duyulmaktadır.</string>
+		<key>NSCameraUsageDescription</key>
+        <string>Kıyafetlerinizin fotoğrafını çekip gardırobunuza eklemek için kamera erişimi gereklidir.</string>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>Gardırobunuza kıyafet eklemek için galerinizdeki fotoğraflara erişim gereklidir.</string>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>Mobile</string>
+		<string>Luvia</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
