@@ -174,33 +174,95 @@ public class RuleBasedRecommender : IOutfitRecommender
 
     // ── AŞAMA 2: PUANLAMA (0.0 - 1.0 skor + açıklamalar) ──
     private static (double score, List<string> reasons) ScoreOutfit(
-        List<WardrobeItem> items, OutfitContext ctx)
+    List<WardrobeItem> items, OutfitContext ctx)
     {
         var reasons = new List<string>();
 
         double color = ScoreColor(items, reasons);
         double formality = ScoreFormality(items, reasons);
+        double pattern = ScorePattern(items, reasons);
         double style = ScoreStyle(items, reasons);
 
-        // Tercih skorları (kullanıcı seçtiyse)
-        double colorPref = ScoreColorPreference(items, ctx.PreferredColor, reasons);
-        double stylePref = ScoreStylePreference(items, ctx.PreferredStyle, reasons);
+        // ── A) Temel boyutlar (her zaman sayılır) ve ağırlıkları ──
+        // color, formality, pattern, style
+        double baseScore = color * 0.42 + formality * 0.24 + pattern * 0.18 + style * 0.16;
+        // (0.42 + 0.24 + 0.18 + 0.16 = 1.0 — temel boyutlar kendi içinde tam)
 
-        double total = color * 0.35 + formality * 0.20 + style * 0.15
-                     + colorPref * 0.15 + stylePref * 0.15;
+        // ── A) Tercih boyutları: SADECE kullanıcı seçtiyse skora kat ──
+        // Seçilmediyse toplama hiç girmez (bedava 1.0 puanı yok)
+        double total = baseScore;
+
+        if (ctx.PreferredColor is not null)
+        {
+            double colorPref = ScoreColorPreference(items, ctx.PreferredColor, reasons);
+            // Tercih uyumu, temel skoru ±%15 kaydırır (çarpan olarak)
+            total *= (0.85 + 0.15 * colorPref);
+        }
+
+        if (ctx.PreferredStyle is not null)
+        {
+            double stylePref = ScoreStylePreference(items, ctx.PreferredStyle, reasons);
+            total *= (0.85 + 0.15 * stylePref);
+        }
+
+        // ── B) Renk çarpımsal cezası ──
+        // Renk kombinin temeli. Çok kötüyse (çakışan / 3+ canlı renk) tüm skoru aşağı çek.
+        if (color < 0.5)
+        {
+            // color 0.2 ise → 0.2/0.5 = 0.4 çarpanı → skor ciddi düşer
+            double colorPenalty = color / 0.5;
+            total *= colorPenalty;
+            reasons.Add("Renk uyumsuzluğu genel puanı belirgin düşürdü");
+        }
+
+        // Skoru 0-1 aralığında tut
+        total = Math.Clamp(total, 0.0, 1.0);
 
         return (total, reasons);
     }
-
     private static double ScoreColor(List<WardrobeItem> items, List<string> reasons)
     {
-        int accentCount = items.Count(i => !i.Color.IsNeutral());
+        // Nötr olmayan (canlı) renkleri ayır
+        var accents = items.Where(i => !i.Color.IsNeutral()).Select(i => i.Color).ToList();
+        int accentCount = accents.Count;
 
-        if (accentCount == 0) { reasons.Add("Tamamen nötr renkler — güvenli uyum"); return 1.0; }
-        if (accentCount == 1) { reasons.Add("Nötr zemin + tek aksan renk — dengeli"); return 0.9; }
-        if (accentCount == 2) { reasons.Add("İki canlı renk — dikkatli kombin"); return 0.5; }
-        reasons.Add("Çok sayıda çarpışan renk");
-        return 0.2;
+        // Hepsi nötr → en güvenli uyum
+        if (accentCount == 0)
+        {
+            reasons.Add("Tamamen nötr tonlar — şık ve güvenli uyum");
+            return 1.0;
+        }
+
+        // Tek aksan renk + nötr zemin → dengeli, klasik
+        if (accentCount == 1)
+        {
+            reasons.Add("Nötr zemin üzerine tek aksan renk — dengeli ve modern");
+            return 0.95;
+        }
+
+        // İki aksan renk → renk çemberi ilişkisine bak (analog / komplementer / çakışan)
+        if (accentCount == 2)
+        {
+            double hueDiff = ColorLab.HueAngleDiff(accents[0], accents[1]);
+
+            if (hueDiff <= 40)
+            {
+                reasons.Add($"{accents[0]} ve {accents[1]} — analog renkler, yumuşak ve uyumlu");
+                return 0.9;
+            }
+            if (hueDiff >= 140)
+            {
+                reasons.Add($"{accents[0]} ve {accents[1]} — komplementer kontrast, çarpıcı ama kasıtlı");
+                return 0.75;
+            }
+            // Orta açı → çakışma riski
+            reasons.Add($"{accents[0]} ve {accents[1]} — renkler biraz çakışıyor, dikkatli kombin");
+            return 0.45;
+        }
+
+        // Üç+ aksan renk → "3 renk kuralı" ihlali (nötrler hariç 2'yi geçmemeli)
+        reasons.Add("Çok sayıda canlı renk — sadeleştirmek daha şık durur");
+        return 0.25;
     }
 
     private static double ScoreFormality(List<WardrobeItem> items, List<string> reasons)
@@ -213,9 +275,26 @@ public class RuleBasedRecommender : IOutfitRecommender
         if (levels.Count < 2) return 0.7;
 
         int spread = levels.Max() - levels.Min();
-        if (spread == 0) { reasons.Add("Formallik tam hizalı"); return 1.0; }
-        if (spread == 1) { reasons.Add("Formallik uyumlu"); return 0.8; }
-        return 0.4;
+
+        if (spread == 0)
+        {
+            reasons.Add("Formalite tam hizalı — bütünlüklü duruş");
+            return 1.0;
+        }
+        if (spread == 1)
+        {
+            // Araştırma: 1 kademe fark kasıtlı, modern bir kontrast (blazer + sneaker gibi)
+            reasons.Add("Hafif formalite kontrastı — modern ve dengeli");
+            return 0.85;
+        }
+        if (spread == 2)
+        {
+            reasons.Add("Formalite farkı biraz yüksek — dikkatli taşınmalı");
+            return 0.45;
+        }
+        // 3+ kademe: örneğin spor ayakkabı + çok resmi parça — dengesiz
+        reasons.Add("Formalite uçları çok açık — dengesiz durabilir");
+        return 0.25;
     }
 
     private static double ScoreStyle(List<WardrobeItem> items, List<string> reasons)
@@ -229,10 +308,53 @@ public class RuleBasedRecommender : IOutfitRecommender
         int dominant = styles.GroupBy(s => s).Max(g => g.Count());
         double ratio = (double)dominant / styles.Count;
 
-        if (ratio == 1.0) { reasons.Add("Tek tutarlı stil"); return 1.0; }
-        if (ratio >= 0.66) { reasons.Add("Baskın stil uyumu"); return 0.75; }
-        reasons.Add("Karışık stiller");
+        if (ratio == 1.0)
+        {
+            reasons.Add("Tek tutarlı stil — net bir karakter");
+            return 1.0;
+        }
+        if (ratio >= 0.66)
+        {
+            reasons.Add("Baskın bir stil var, uyumlu");
+            return 0.8;
+        }
+        if (ratio >= 0.5)
+        {
+            // Yarı yarıya — kasıtlı karışım olabilir, orta
+            reasons.Add("İki stil dengeli karışmış — bilinçli bir tercih");
+            return 0.6;
+        }
+        reasons.Add("Stiller dağınık — bir yöne çekmek daha iyi");
         return 0.4;
+    }
+    private static double ScorePattern(List<WardrobeItem> items, List<string> reasons)
+    {
+        // Desenli parçaları say (Solid = düz, gerisi desenli)
+        var patterned = items
+            .Where(i => i.Pattern is not null && i.Pattern != Domain.Enums.Pattern.Solid)
+            .ToList();
+
+        int patternCount = patterned.Count;
+
+        if (patternCount == 0)
+        {
+            reasons.Add("Tüm parçalar düz — temiz ve güvenli");
+            return 0.85;
+        }
+        if (patternCount == 1)
+        {
+            reasons.Add("Tek desenli parça, gerisi düz — ideal denge");
+            return 1.0;
+        }
+        if (patternCount == 2)
+        {
+            // İki desen — araştırma: ancak dikkatli/ortak renkle tolere edilir
+            reasons.Add("İki desenli parça — cesur, dikkatli kombinlenmeli");
+            return 0.5;
+        }
+        // Üç+ desen — dağınık
+        reasons.Add("Çok fazla desen — sadeleştirmek daha şık");
+        return 0.3;
     }
 
     // Renk tercihi (Yorum B): 1-2 parça o renk = yüksek, hepsi = ceza, hiç = çok düşük

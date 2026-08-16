@@ -9,7 +9,8 @@ public static class ColorExtensions
     private static readonly HashSet<ColorName> Neutrals = new()
     {
         ColorName.Black, ColorName.White, ColorName.Gray,
-        ColorName.Navy, ColorName.Beige, ColorName.Cream
+        ColorName.Navy, ColorName.Beige, ColorName.Cream,
+        ColorName.Khaki, ColorName.Brown
     };
 
     public static bool IsNeutral(this ColorName color) => Neutrals.Contains(color);
