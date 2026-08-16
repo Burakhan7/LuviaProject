@@ -15,5 +15,11 @@ public interface IOutfitRecommender
         OutfitContext context,
         int maxResults = 5,
          int offset = 0
+
         );
+
+    // Tek bir kombini (kullanýcýnýn seçtiði parçalar) deðerlendirir: skor + yorumlar
+    (double score, IReadOnlyList<string> reasons) Evaluate(
+        IReadOnlyList<WardrobeItem> items,
+        OutfitContext context);
 }

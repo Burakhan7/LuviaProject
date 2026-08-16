@@ -6,11 +6,10 @@ using Luvia.Infrastructure.Services;
 using Luvia.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Luvia.Application.Features.Outfits;
-using Luvia.Application.DTOs;
 using Luvia.Domain.Enums;
-using Luvia.Infrastructure.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Luvia.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -174,7 +173,39 @@ app.MapGet("/outfits/{userId}", async (
     return Results.Ok(new { outfits, missingMessage = (string?)null });
 });
 
+app.MapPost("/outfits/evaluate", async (
+    EvaluateRequest req,
+    IWardrobeItemRepository repo, IOutfitRecommender recommender,
+    CancellationToken ct) =>
+{
+    // Kullanıcının gardırobunu çek
+    var wardrobe = await repo.GetByUserAsync(req.UserId, ct);
+
+    // Seçilen ID'lere karşılık gelen item'ları bul (sırayı koru, null'ları at)
+    var selected = req.ItemIds
+        .Select(id => wardrobe.FirstOrDefault(w => w.Id == id))
+        .Where(i => i is not null)
+        .Cast<WardrobeItem>()
+        .ToList();
+
+    // Hiç geçerli parça yoksa
+    if (selected.Count == 0)
+        return Results.BadRequest(new { message = "Değerlendirilecek geçerli parça bulunamadı." });
+
+    // Context: mevsim/formalite değerlendirmede zorunlu değil, varsayılan ver
+    var context = new OutfitContext(req.Season, Formality.Casual, null, null);
+
+    var (score, reasons) = recommender.Evaluate(selected, context);
+
+    return Results.Ok(new
+    {
+        score = (int)Math.Round(score * 100),   // 0.0-1.0 → 0-100
+        comments = reasons
+    });
+});
+
 app.Run();
 
 record CorrectRequest(Category Category, ColorName Color, Season Season);
 record AvailabilityRequest(bool IsAvailable);
+record EvaluateRequest(string UserId, List<Guid> ItemIds, Season Season);

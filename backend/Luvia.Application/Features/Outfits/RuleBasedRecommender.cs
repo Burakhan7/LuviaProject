@@ -283,4 +283,14 @@ public class RuleBasedRecommender : IOutfitRecommender
         reasons.Add($"{preferred} stili var ama zayıf");
         return 0.6;
     }
+
+    // Tek kombini değerlendir — mevcut ScoreOutfit mantığını kullanır (tutarlılık)
+    public (double score, IReadOnlyList<string> reasons) Evaluate(
+        IReadOnlyList<WardrobeItem> items,
+        OutfitContext context)
+    {
+        var list = items.ToList();
+        var (score, reasons) = ScoreOutfit(list, context);
+        return (score, reasons);
+    }
 }
