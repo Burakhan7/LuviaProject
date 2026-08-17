@@ -87,6 +87,137 @@ public class RuleBasedRecommender : IOutfitRecommender
         return new OutfitResult(page);
     }
 
+    // ── GÜNÜN KOMBİNİ: determinist + son günlerle çeşitlilik ──
+    public Outfit? RecommendDaily(
+        IReadOnlyList<WardrobeItem> wardrobe,
+        OutfitContext context,
+        DateOnly date)
+    {
+        // Tüm geçerli adayları üret + skorla (Recommend ile aynı mantık)
+        var candidates = BuildCandidates(wardrobe, context);
+        if (candidates.Count == 0) return null;
+
+        // Skora göre sırala (en iyi başta)
+        candidates = candidates.OrderByDescending(o => o.Score).ToList();
+
+        // Dinamik geriye bakış: aday sayısına göre kaç güne bakılacağı
+        int lookback;
+        if (candidates.Count < 10) lookback = 1;
+        else if (candidates.Count < 30) lookback = 2;
+        else lookback = 3;
+
+        // Geçmiş günlerin kombinlerini (aynı yöntemle) yeniden hesapla
+        var pastItemIds = new HashSet<Guid>();
+        var pastCombos = new List<List<Guid>>();
+        for (int d = 1; d <= lookback; d++)
+        {
+            var pastDate = date.AddDays(-d);
+            var pastCombo = PickForDate(candidates, pastDate);
+            if (pastCombo != null)
+            {
+                pastCombos.Add(pastCombo.Items.Select(i => i.Id).ToList());
+            }
+        }
+
+        // Bugünün adaylarını, geçmiş günlerle ortaklığa göre önceliklendir
+        // Öncelik: her geçmiş günle ≤1 ortak (mümkünse 0)
+        Outfit? best = null;
+        int bestMaxShared = int.MaxValue;
+
+        // Determinist tarama sırası: bugünün seed'ine göre karıştır ama sıralı
+        var ordered = OrderBySeed(candidates, date);
+
+        foreach (var candidate in ordered)
+        {
+            var ids = candidate.Items.Select(i => i.Id).ToList();
+            // Bu adayın, geçmiş günlerin herhangi biriyle en çok kaç ortak item'ı var
+            int maxShared = 0;
+            foreach (var combo in pastCombos)
+            {
+                int shared = ids.Count(id => combo.Contains(id));
+                if (shared > maxShared) maxShared = shared;
+            }
+
+            // İdeal: 0 ortak. Kabul: ≤1 ortak. En az benzeyeni sakla (fallback).
+            if (maxShared == 0)
+            {
+                return candidate; // mükemmel — hiç ortak yok, direkt seç
+            }
+            if (maxShared < bestMaxShared)
+            {
+                bestMaxShared = maxShared;
+                best = candidate;
+            }
+        }
+
+        // 0 ortak bulunamadıysa, en az benzeyen (mümkünse ≤1) döner
+        return best ?? candidates.First();
+    }
+
+    // Belirli bir tarih için determinist kombin seç (geçmiş gün hesabı için)
+    private Outfit? PickForDate(List<Outfit> candidates, DateOnly date)
+    {
+        var ordered = OrderBySeed(candidates, date);
+        return ordered.FirstOrDefault();
+    }
+
+    // Tarihi seed olarak kullanıp adayları determinist sırala
+    // (skoru yüksekleri öne alır ama güne göre döndürür)
+    private static List<Outfit> OrderBySeed(List<Outfit> candidates, DateOnly date)
+    {
+        int seed = date.DayNumber;
+        // Yüksek skorluları koru ama seed'e göre deterministik döndür:
+        // her adaya (skor + seed'e bağlı sabit bir kayma) ver, ona göre sırala
+        return candidates
+            .OrderByDescending(o => o.Score - 0.15 * (StableHash(o, seed) % 5) / 5.0)
+            .ToList();
+    }
+
+    // Bir kombin + seed için sabit (deterministik) bir sayı üretir
+    private static int StableHash(Outfit outfit, int seed)
+    {
+        int h = seed;
+        foreach (var item in outfit.Items.OrderBy(i => i.Id))
+        {
+            h = h * 31 + item.Id.GetHashCode();
+        }
+        return Math.Abs(h);
+    }
+
+    // Aday üretimi — Recommend'ten çıkarıldı, tekrar kullanım için
+    private List<Outfit> BuildCandidates(
+        IReadOnlyList<WardrobeItem> wardrobe, OutfitContext context)
+    {
+        var available = wardrobe.Where(i => i.IsAvailable).ToList();
+        var tops = available.Where(i => i.Kind == ItemKind.Clothing && IsTop(i.Category)).ToList();
+        var bottoms = available.Where(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category)).ToList();
+        var dresses = available.Where(i => i.Category == Category.Dress).ToList();
+        var shoes = available.Where(i => i.Kind == ItemKind.Shoes).ToList();
+
+        var candidates = new List<Outfit>();
+
+        foreach (var top in tops)
+            foreach (var bottom in bottoms)
+                foreach (var shoe in shoes)
+                {
+                    var items = new List<WardrobeItem> { top, bottom, shoe };
+                    if (!PassesHardConstraints(items, context)) continue;
+                    var (score, reasons) = ScoreOutfit(items, context);
+                    candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
+                }
+
+        foreach (var dress in dresses)
+            foreach (var shoe in shoes)
+            {
+                var items = new List<WardrobeItem> { dress, shoe };
+                if (!PassesHardConstraints(items, context)) continue;
+                var (score, reasons) = ScoreOutfit(items, context);
+                candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
+            }
+
+        return candidates;
+    }
+
     // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
     private static IReadOnlyList<Outfit> SelectDiverse(List<Outfit> candidates, int maxResults)
@@ -327,6 +458,7 @@ public class RuleBasedRecommender : IOutfitRecommender
         reasons.Add("Stiller dağınık — bir yöne çekmek daha iyi");
         return 0.4;
     }
+
     private static double ScorePattern(List<WardrobeItem> items, List<string> reasons)
     {
         // Desenli parçaları say (Solid = düz, gerisi desenli)

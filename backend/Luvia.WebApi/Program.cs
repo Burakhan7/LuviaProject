@@ -204,6 +204,37 @@ app.MapPost("/outfits/evaluate", async (
     });
 });
 
+app.MapGet("/outfits/{userId}/daily", async (
+    string userId, Season season, Formality formality,
+    IWardrobeItemRepository repo, IOutfitRecommender recommender,
+    CancellationToken ct) =>
+{
+    var wardrobe = await repo.GetByUserAsync(userId, ct);
+    var context = new OutfitContext(season, formality, null, null);
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+    var outfit = recommender.RecommendDaily(wardrobe, context, today);
+
+    if (outfit is null)
+        return Results.Ok(new { outfit = (object?)null, message = "Kombin önerisi için yeterli parça yok." });
+
+    var result = new
+    {
+        score = Math.Round(outfit.Score, 2),
+        items = outfit.Items.Select(i => new {
+            i.Category,
+            i.Color,
+            i.Style,
+            i.Kind,
+            i.ProcessedImageUrl,
+            i.IsLayered
+        }),
+        reasons = outfit.Reasons
+    };
+
+    return Results.Ok(new { outfit = result, message = (string?)null });
+});
+
 app.Run();
 
 record CorrectRequest(Category Category, ColorName Color, Season Season);

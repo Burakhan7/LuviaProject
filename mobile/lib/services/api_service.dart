@@ -124,6 +124,24 @@ class ApiService {
       throw Exception('Düzeltilemedi: ${response.statusCode}');
   }
 
+  // Günün kombini — tek öneri, determinist
+  Future<Outfit?> getDailyOutfit(String season, String formality) async {
+    final uri = Uri.parse(
+      '$baseUrl/outfits/$_userId/daily',
+    ).replace(queryParameters: {'season': season, 'formality': formality});
+    final response = await http.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception('Günün kombini alınamadı: ${response.statusCode}');
+    }
+
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    final outfitJson = data['outfit'];
+    if (outfitJson == null) return null; // yeterli parça yok
+
+    return Outfit.fromJson(outfitJson);
+  }
+
   // Manuel kombin değerlendirme — seçilen parçaları backend'e gönderir, skor + yorum alır
   Future<({int score, List<String> comments})> evaluateOutfit(
     List<String> itemIds,

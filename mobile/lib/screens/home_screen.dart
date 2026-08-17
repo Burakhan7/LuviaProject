@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../theme.dart';
 import '../services/auth_service.dart';
 import 'auth_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(int)? onNavigateToTab;
@@ -27,12 +28,16 @@ class HomeScreenState extends State<HomeScreen> {
   DailyForecast? _todayForecast; // ← YENİ
   WeatherStatus? _forecastStatus; // ← YENİ: neden yok, onu bilelim
   final _auth = AuthService();
+  Future<Outfit?>? _dailyOutfitFuture;
+  bool _dailyOpened = false;
+  bool _checkingDaily = true;
 
   @override
   void initState() {
     super.initState();
     _wardrobeFuture = _api.getWardrobe();
     _loadWeather();
+    _checkDailyStatus();
   }
 
   Future<void> _loadWeather() async {
@@ -54,15 +59,45 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   // Varsayılan bağlamla kombin öner
-  void _suggestOutfit() {
-    // Forecast varsa günün geneline göre, yoksa anlık, o da yoksa aya göre
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month}-${now.day}';
+  }
+
+  Future<void> _checkDailyStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedDate = prefs.getString('daily_outfit_date');
+    if (!mounted) return;
+    if (savedDate == _todayKey()) {
+      setState(() {
+        _dailyOpened = true;
+        _checkingDaily = false;
+      });
+      _loadDailyOutfit();
+    } else {
+      setState(() {
+        _dailyOpened = false;
+        _checkingDaily = false;
+      });
+    }
+  }
+
+  void _loadDailyOutfit() {
     final season =
         _todayForecast?.season ??
         _currentWeather?.season ??
         WeatherService.seasonFromMonth();
     setState(() {
-      _outfitFuture = _api.getOutfits(season, 'Casual');
+      _dailyOutfitFuture = _api.getDailyOutfit(season, 'Casual');
     });
+  }
+
+  Future<void> _openDailyOutfit() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('daily_outfit_date', _todayKey());
+    if (!mounted) return;
+    setState(() => _dailyOpened = true);
+    _loadDailyOutfit();
   }
 
   String get _greeting {
@@ -427,7 +462,17 @@ class HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 14),
 
           // Kombin sonucu / buton
-          if (_outfitFuture == null) _heroPrompt() else _heroResult(),
+          if (_checkingDaily)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            )
+          else if (!_dailyOpened)
+            _heroPrompt()
+          else
+            _heroResult(),
         ],
       ),
     );
@@ -438,19 +483,19 @@ class HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Gardırobuna göre sana özel bir kombin önerelim',
-          style: TextStyle(color: Colors.white.withOpacity(0.85)),
+          'Bugün için gardırobuna özel bir kombin hazırladık',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.85)),
         ),
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _suggestOutfit,
+            onPressed: _openDailyOutfit,
             style: FilledButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: LuviaTheme.primary,
             ),
-            child: const Text('Kombin Oluştur'),
+            child: const Text('Bugünün Kombinini Gör'),
           ),
         ),
       ],
@@ -458,8 +503,8 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _heroResult() {
-    return FutureBuilder<OutfitResult>(
-      future: _outfitFuture,
+    return FutureBuilder<Outfit?>(
+      future: _dailyOutfitFuture,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -469,22 +514,22 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           );
         }
-        final result = snap.data;
-        final outfits = result?.outfits ?? [];
-        if (outfits.isEmpty) {
+
+        final outfit = snap.data;
+        if (outfit == null) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Kombin oluşturmak için daha fazla kıyafet ekle',
-                style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
               ),
               const SizedBox(height: 12),
-              _heroSmallButton('Tekrar Dene', _suggestOutfit),
+              _heroSmallButton('Tekrar Dene', _loadDailyOutfit),
             ],
           );
         }
-        final outfit = outfits.first;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -507,56 +552,20 @@ class HomeScreenState extends State<HomeScreen> {
                         ? CachedNetworkImage(
                             imageUrl: item.processedImageUrl!,
                             fit: BoxFit.cover,
-                            memCacheWidth:
-                                300, // gösterilecek boyutta cache — bellek + hız
-                            placeholder: (context, url) =>
-                                Container(color: LuviaTheme.bgTop),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.checkroom),
+                            memCacheWidth: 150,
                           )
-                        : const Icon(
-                            Icons.checkroom,
-                            color: LuviaTheme.primary,
-                          ),
+                        : const Icon(Icons.checkroom),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Uyum %${(outfit.score * 100).round()}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _suggestOutfit,
-                  icon: const Icon(
-                    Icons.refresh,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  label: const Text(
-                    'Yenile',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 14),
+            Text(
+              'Bugünün kombini hazır',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.95),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         );

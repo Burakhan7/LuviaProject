@@ -22,4 +22,10 @@ public interface IOutfitRecommender
     (double score, IReadOnlyList<string> reasons) Evaluate(
         IReadOnlyList<WardrobeItem> items,
         OutfitContext context);
+
+    // Günün kombini — determinist, son günlerle çeþitli
+    Outfit? RecommendDaily(
+        IReadOnlyList<WardrobeItem> wardrobe,
+        OutfitContext context,
+        DateOnly date);
 }
