@@ -31,4 +31,9 @@ public class InMemoryWardrobeItemRepository : IWardrobeItemRepository
         _items.Remove(item);
         return Task.CompletedTask;
     }
+    public Task DeleteByUserAsync(string userId, CancellationToken ct = default)
+    {
+        _items.RemoveAll(i => i.UserId == userId);
+        return Task.CompletedTask;
+    }
 }

@@ -234,6 +234,14 @@ app.MapGet("/outfits/{userId}/daily", async (
 
     return Results.Ok(new { outfit = result, message = (string?)null });
 });
+app.MapDelete("/users/{userId}", async (
+    string userId,
+    IWardrobeItemRepository repo,
+    CancellationToken ct) =>
+{
+    await repo.DeleteByUserAsync(userId, ct);
+    return Results.Ok(new { message = "Hesap verileri silindi." });
+});
 
 app.Run();
 

@@ -31,4 +31,8 @@ public class EfWardrobeItemRepository : IWardrobeItemRepository
         _db.WardrobeItems.Remove(item);
         return Task.CompletedTask;
     }
+    public async Task DeleteByUserAsync(string userId, CancellationToken ct = default)
+    => await _db.WardrobeItems
+        .Where(i => i.UserId == userId)
+        .ExecuteDeleteAsync(ct);
 }

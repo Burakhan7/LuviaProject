@@ -23,6 +23,21 @@ class AuthService {
     }
   }
 
+  // Firebase Auth hesabını sil
+  Future<String?> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return 'Oturum bulunamadı.';
+      await user.delete();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        return 'requires-recent-login'; // özel işaret — yeniden giriş gerekli
+      }
+      return _mesaj(e.code);
+    }
+  }
+
   // Kayıt ol
   // Eğer kullanıcı MİSAFİR ise: anonim hesabı gerçek hesaba YÜKSELT (userId korunur, veriler kalır)
   // Değilse: normal yeni hesap oluştur

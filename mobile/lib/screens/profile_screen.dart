@@ -53,6 +53,79 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hesabımı Sil'),
+        content: const Text(
+          'Hesabın ve tüm kıyafetlerin kalıcı olarak silinecek. '
+          'Bu işlem geri alınamaz. Devam etmek istiyor musun?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Hesabımı Sil',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    // Yükleme göstergesi
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    try {
+      // 1. Önce DB verilerini sil (userId hâlâ geçerliyken)
+      await _api.deleteAccountData();
+      // 2. Sonra Firebase Auth hesabını sil
+      final error = await _auth.deleteAccount();
+
+      if (!mounted) return;
+      Navigator.pop(context); // yükleme dialogunu kapat
+
+      if (error == 'requires-recent-login') {
+        // Güvenlik: yeniden giriş gerekli
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Güvenlik için çıkış yapıp tekrar giriş yaptıktan sonra hesabını silebilirsin.',
+            ),
+            duration: Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+      if (error != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
+        return;
+      }
+      // Başarılı — authStateChanges otomatik başlangıca döndürür (anonim giriş yeniden başlar)
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // yükleme dialogunu kapat
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Hesap silinemedi: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -175,6 +248,22 @@ class ProfileScreenState extends State<ProfileScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _deleteAccount,
+                  icon: const Icon(
+                    Icons.delete_forever,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                  label: const Text(
+                    'Hesabımı Sil',
+                    style: TextStyle(color: Colors.red),
                   ),
                 ),
               ),

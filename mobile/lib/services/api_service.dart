@@ -142,6 +142,14 @@ class ApiService {
     return Outfit.fromJson(outfitJson);
   }
 
+  // Hesap verilerini sil (kullanıcının tüm kıyafetleri)
+  Future<void> deleteAccountData() async {
+    final response = await http.delete(Uri.parse('$baseUrl/users/$_userId'));
+    if (response.statusCode != 200) {
+      throw Exception('Hesap verileri silinemedi: ${response.statusCode}');
+    }
+  }
+
   // Manuel kombin değerlendirme — seçilen parçaları backend'e gönderir, skor + yorum alır
   Future<({int score, List<String> comments})> evaluateOutfit(
     List<String> itemIds,

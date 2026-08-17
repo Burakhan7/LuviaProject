@@ -14,4 +14,5 @@ public interface IWardrobeItemRepository
     Task<WardrobeItem?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
     Task DeleteAsync(WardrobeItem item, CancellationToken ct = default);
+    Task DeleteByUserAsync(string userId, CancellationToken ct = default);
 }
