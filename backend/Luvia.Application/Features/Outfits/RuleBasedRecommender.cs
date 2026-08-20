@@ -186,14 +186,17 @@ public class RuleBasedRecommender : IOutfitRecommender
 
     // Aday üretimi — Recommend'ten çıkarıldı, tekrar kullanım için
     private List<Outfit> BuildCandidates(
-            IReadOnlyList<WardrobeItem> wardrobe, OutfitContext context)
+    IReadOnlyList<WardrobeItem> wardrobe, OutfitContext context)
     {
         var available = wardrobe.Where(i => i.IsAvailable).ToList();
-        var tops = available.Where(i => i.Kind == ItemKind.Clothing && IsTop(i.Category)).ToList();
+        // İç üst (ceket hariç)
+        var tops = available.Where(i => i.Kind == ItemKind.Clothing && IsInnerTop(i.Category)).ToList();
         var bottoms = available.Where(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category)).ToList();
         var dresses = available.Where(i => i.Category == Category.Dress).ToList();
         var shoes = available.Where(i => i.Kind == ItemKind.Shoes).ToList();
         var jewelry = available.Where(i => i.Kind == ItemKind.Jewelry).ToList();
+        // Ceket katmanı
+        var outerwear = available.Where(i => i.Kind == ItemKind.Clothing && IsOuterwear(i.Category)).ToList();
 
         var candidates = new List<Outfit>();
 
@@ -204,7 +207,11 @@ public class RuleBasedRecommender : IOutfitRecommender
                     var items = new List<WardrobeItem> { top, bottom, shoe };
                     if (!PassesHardConstraints(items, context)) continue;
 
-                    // Takı ekle (en uyumlu 1-2, farklı tip)
+                    // Ceket ekle (mevsim uygunsa + varsa)
+                    var jacket = SelectOuterwear(items, outerwear, context);
+                    if (jacket != null) items.Add(jacket);
+
+                    // Takı ekle
                     var jew = SelectJewelry(items, jewelry, context);
                     items.AddRange(jew);
 
@@ -218,6 +225,9 @@ public class RuleBasedRecommender : IOutfitRecommender
                 var items = new List<WardrobeItem> { dress, shoe };
                 if (!PassesHardConstraints(items, context)) continue;
 
+                var jacket = SelectOuterwear(items, outerwear, context);
+                if (jacket != null) items.Add(jacket);
+
                 var jew = SelectJewelry(items, jewelry, context);
                 items.AddRange(jew);
 
@@ -227,7 +237,6 @@ public class RuleBasedRecommender : IOutfitRecommender
 
         return candidates;
     }
-
 
     // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
@@ -444,6 +453,39 @@ public class RuleBasedRecommender : IOutfitRecommender
         }
 
         return selected;
+    }
+
+    // ── CEKET SEÇİMİ: mevsim uygunsa kombine en uyumlu ceketi ekler ──
+    private static WardrobeItem? SelectOuterwear(
+        List<WardrobeItem> outfit, List<WardrobeItem> outerwear, OutfitContext ctx)
+    {
+        if (outerwear.Count == 0) return null;
+
+        // Sadece kış veya ara mevsimde ceket öner
+        if (ctx.Season != Season.Winter && ctx.Season != Season.MidSeason)
+            return null;
+
+        // En uyumlu ceketi seç (renk + formalite)
+        WardrobeItem? best = null;
+        double bestScore = -1;
+
+        foreach (var jacket in outerwear)
+        {
+            // Ceketi kombine ekleyip renk+formalite uyumuna bak
+            var withJacket = new List<WardrobeItem>(outfit) { jacket };
+            var tempReasons = new List<string>();
+            double color = ScoreColor(withJacket, tempReasons);
+            double formality = ScoreFormality(withJacket, tempReasons);
+            double score = color * 0.6 + formality * 0.4;
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = jacket;
+            }
+        }
+
+        return best;
     }
 
     private static double ScoreColor(List<WardrobeItem> items, List<string> reasons)
