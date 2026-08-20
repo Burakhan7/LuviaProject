@@ -368,66 +368,82 @@ public class RuleBasedRecommender : IOutfitRecommender
         return (total, reasons);
     }
 
-    // ── TAKI SEÇİMİ: kombine en uyumlu 1-2 takı ekler ──
+    // ── TAKI SEÇİMİ: kombine en uyumlu 1-2 takı (farklı tip) ──
     private static List<WardrobeItem> SelectJewelry(
         List<WardrobeItem> outfit, List<WardrobeItem> jewelry, OutfitContext ctx)
     {
         if (jewelry.Count == 0) return new List<WardrobeItem>();
 
-        // Her takının, kombine eklendiğindeki uyum skorunu hesapla (0-1)
-        double ScoreWith(List<WardrobeItem> items)
+        // Takının kombine uyumu (0-1) — ana renk hesabına KATMADAN
+        double JewelryFit(WardrobeItem jew)
         {
-            var tempReasons = new List<string>();
-            double color = ScoreColor(items, tempReasons);
-            double formality = ScoreFormality(items, tempReasons);
-            // Takı uyumu = renk + formalite (ağırlıklı)
-            return color * 0.6 + formality * 0.4;
+            // 1) Materyal nötrse (altın/gümüş vs) → her şeyle uyumlu, yüksek taban
+            //    JewelryMaterial: Gold, Silver, RoseGold, Pearl, Gemstone, Beaded
+            double materialScore = 0.9; // takı materyali genelde nötr/uyumlu
+
+            // 2) Renk uyumu: takının rengi kombinin renkleriyle uyumlu mu
+            double colorScore;
+            if (jew.Color.IsNeutral())
+            {
+                colorScore = 1.0; // nötr takı her şeyle gider
+            }
+            else
+            {
+                // Takının rengi, kombindeki en az bir renkle analog/uyumlu mu
+                var outfitColors = outfit.Select(i => i.Color).Distinct().ToList();
+                double bestHarmony = 0.5; // taban (uyumsuz değil ama nötr de değil)
+                foreach (var c in outfitColors)
+                {
+                    if (c.IsNeutral()) { bestHarmony = Math.Max(bestHarmony, 0.85); continue; }
+                    double hue = ColorLab.HueAngleDiff(jew.Color, c);
+                    if (hue <= 40) bestHarmony = Math.Max(bestHarmony, 0.9);       // analog
+                    else if (hue >= 140) bestHarmony = Math.Max(bestHarmony, 0.7); // komplementer
+                    else bestHarmony = Math.Max(bestHarmony, 0.4);                 // çakışan
+                }
+                colorScore = bestHarmony;
+            }
+
+            // 3) Formalite uyumu (takının formalitesi kombinle yakın mı)
+            double formalityScore = 0.8; // taban
+            if (jew.Formality is not null)
+            {
+                var outfitForms = outfit
+                    .Where(i => i.Formality is not null)
+                    .Select(i => (int)i.Formality!.Value)
+                    .ToList();
+                if (outfitForms.Count > 0)
+                {
+                    double avg = outfitForms.Average();
+                    int diff = (int)Math.Abs((int)jew.Formality.Value - avg);
+                    formalityScore = diff == 0 ? 1.0 : (diff == 1 ? 0.8 : 0.5);
+                }
+            }
+
+            // Ağırlıklı: renk 0.45 + formalite 0.30 + materyal 0.25
+            return colorScore * 0.45 + formalityScore * 0.30 + materialScore * 0.25;
         }
 
-        // Baz skor (takısız kombin)
-        double baseScore = ScoreWith(outfit);
-
-        // Her takı için: kombin + o takı skoru
+        // Her takıyı skorla, 65 (0.65) altını ele
         var scored = jewelry
-            .Select(j => (item: j, score: ScoreWith(new List<WardrobeItem>(outfit) { j })))
+            .Select(j => (item: j, score: JewelryFit(j)))
+            .Where(x => x.score >= 0.65)
             .OrderByDescending(x => x.score)
             .ToList();
 
-        // 65 eşiği (0-1 ölçekte 0.65) altındakileri ele
-        var eligible = scored.Where(x => x.score >= 0.65).ToList();
+        if (scored.Count == 0) return new List<WardrobeItem>();
 
-        if (eligible.Count == 0) return new List<WardrobeItem>();
+        var selected = new List<WardrobeItem> { scored[0].item };
 
-        var selected = new List<WardrobeItem>();
-
-        // 1. TAKI: en yüksek skorlu
-        var first = eligible[0].item;
-        selected.Add(first);
-
-        // 2. TAKI: kombin+1.takı üzerine, skoru en çok artıran (veya eşit tutan)
-        var withFirst = new List<WardrobeItem>(outfit) { first };
-        double scoreWithFirst = ScoreWith(withFirst);
-
-        WardrobeItem? bestSecond = null;
-        double bestSecondScore = scoreWithFirst;
-
-        foreach (var (item, _) in eligible.Skip(1))
+        // 2. takı: farklı tip + skoru en yüksek olan (65+ zaten garantili)
+        var first = scored[0].item;
+        foreach (var (item, _) in scored.Skip(1))
         {
-            // 2. takı 1.'den FARKLI tipte olmalı (2 saat, 2 yüzük engellenir)
-            if (item.JewelryType == first.JewelryType) continue;
-
-            var withBoth = new List<WardrobeItem>(withFirst) { item };
-            double s = ScoreWith(withBoth);
-            if (s >= bestSecondScore)
-            {
-                bestSecondScore = s;
-                bestSecond = item;
-            }
+            if (item.JewelryType == first.JewelryType) continue; // farklı tip şart
+            selected.Add(item);
+            break; // maks 2
         }
 
-        if (bestSecond != null) selected.Add(bestSecond);
-
-        return selected; // maks 2
+        return selected;
     }
 
     private static double ScoreColor(List<WardrobeItem> items, List<string> reasons)
