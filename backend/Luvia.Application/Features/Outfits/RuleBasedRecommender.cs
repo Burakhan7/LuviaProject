@@ -47,41 +47,8 @@ public class RuleBasedRecommender : IOutfitRecommender
             }
         }
 
-        // ── AŞAMA 1: Slot'lara ayır ──
-        var tops = wardrobe.Where(i => i.Kind == ItemKind.Clothing && IsTop(i.Category)).ToList();
-        var bottoms = wardrobe.Where(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category)).ToList();
-        var dresses = wardrobe.Where(i => i.Category == Category.Dress).ToList();
-        var shoes = wardrobe.Where(i => i.Kind == ItemKind.Shoes).ToList();
-
-        var candidates = new List<Outfit>();
-
-        // ── Aday kombinler üret (üst + alt + ayakkabı) ──
-        foreach (var top in tops)
-            foreach (var bottom in bottoms)
-                foreach (var shoe in shoes)
-                {
-                    var items = new List<WardrobeItem> { top, bottom, shoe };
-
-                    if (!PassesHardConstraints(items, context))
-                        continue;
-
-                    var (score, reasons) = ScoreOutfit(items, context);
-                    candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
-                }
-
-        // ── Elbise bazlı kombinler (elbise + ayakkabı) ──
-        foreach (var dress in dresses)
-            foreach (var shoe in shoes)
-            {
-                var items = new List<WardrobeItem> { dress, shoe };
-
-                if (!PassesHardConstraints(items, context))
-                    continue;
-
-                var (score, reasons) = ScoreOutfit(items, context);
-                candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
-            }
-
+        // Aday kombinler — BuildCandidates (takı + ceket dahil, tutarlı)
+        var candidates = BuildCandidates(wardrobe, context);
         var selected = SelectDiverse(candidates, maxResults);
         var page = selected.Skip(offset).Take(maxResults).ToList();
         return new OutfitResult(page);

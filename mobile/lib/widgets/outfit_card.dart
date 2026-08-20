@@ -191,11 +191,24 @@ class OutfitCardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final display = items.take(4).toList();
+    // Giysiler (büyük) vs takılar (küçük) ayır
+    final garments = items.where((i) => i.kind != 'Jewelry').toList();
+    final jewelry = items.where((i) => i.kind == 'Jewelry').toList();
+
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildLayout(garments.take(4).toList()),
+        if (jewelry.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _jewelryRow(jewelry.take(2).toList()),
+        ],
+      ],
+    );
 
     final layout = Padding(
       padding: EdgeInsets.all(showBackground ? 16 : 0),
-      child: _buildLayout(display),
+      child: content,
     );
 
     if (!showBackground) return layout;
@@ -210,7 +223,7 @@ class OutfitCardGrid extends StatelessWidget {
   }
 
   Widget _buildLayout(List<WardrobeItem> items) {
-    // 3 item: 2 üstte + 1 ortada altta (ayakkabı merkezde)
+    // 3 item: 2 üstte + 1 ortada altta
     if (items.length == 3) {
       return Column(
         mainAxisSize: MainAxisSize.min,
@@ -224,7 +237,7 @@ class OutfitCardGrid extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          _gridItem(items[2]), // altta ortalı
+          _gridItem(items[2]),
         ],
       );
     }
@@ -270,9 +283,38 @@ class OutfitCardGrid extends StatelessWidget {
     );
   }
 
+  // Takı şeridi — küçük, altta, yan yana
+  Widget _jewelryRow(List<WardrobeItem> jewelry) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: jewelry
+          .map(
+            (it) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: SizedBox(
+                width: 46,
+                height: 46,
+                child: it.processedImageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: it.processedImageUrl!,
+                        fit: BoxFit.contain,
+                        memCacheWidth: 150,
+                        placeholder: (c, u) => const SizedBox.shrink(),
+                        errorWidget: (c, u, e) =>
+                            const Icon(Icons.diamond_outlined, size: 20),
+                      )
+                    : const Icon(Icons.diamond_outlined, size: 20),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   Widget _gridItem(WardrobeItem it) {
     return SizedBox(
-      width: 100, // item boyutu (koruduk)
+      width: 100,
       height: 100,
       child: it.processedImageUrl != null
           ? CachedNetworkImage(
