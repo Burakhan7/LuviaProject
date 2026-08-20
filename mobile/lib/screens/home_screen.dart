@@ -534,7 +534,7 @@ class HomeScreenState extends State<HomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            OutfitCardGrid(items: outfit.items),
+            OutfitCardGrid(items: outfit.items, itemSize: 88),
             const SizedBox(height: 14),
             Text(
               'Bugünün kombini hazır',

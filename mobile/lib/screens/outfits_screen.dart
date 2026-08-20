@@ -707,7 +707,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           ),
 
           const SizedBox(height: 8),
-          OutfitCardGrid(items: o.items, showBackground: false),
+          OutfitCardGrid(items: o.items, showBackground: false, itemSize: 100),
           if (o.reasons.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(

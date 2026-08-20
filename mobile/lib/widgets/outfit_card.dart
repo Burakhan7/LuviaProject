@@ -183,32 +183,21 @@ class _AxisStack extends StatelessWidget {
 class OutfitCardGrid extends StatelessWidget {
   final List<WardrobeItem> items;
   final bool showBackground;
+  final double itemSize;
   const OutfitCardGrid({
     super.key,
     required this.items,
     this.showBackground = true,
+    this.itemSize = 90,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Giysiler (büyük) vs takılar (küçük) ayır
-    final garments = items.where((i) => i.kind != 'Jewelry').toList();
-    final jewelry = items.where((i) => i.kind == 'Jewelry').toList();
-
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildLayout(garments.take(4).toList()),
-        if (jewelry.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          _jewelryRow(jewelry.take(2).toList()),
-        ],
-      ],
-    );
+    final display = items.take(6).toList(); // max 6 parça
 
     final layout = Padding(
       padding: EdgeInsets.all(showBackground ? 16 : 0),
-      child: content,
+      child: _buildLayout(display),
     );
 
     if (!showBackground) return layout;
@@ -223,99 +212,46 @@ class OutfitCardGrid extends StatelessWidget {
   }
 
   Widget _buildLayout(List<WardrobeItem> items) {
-    // 3 item: 2 üstte + 1 ortada altta
-    if (items.length == 3) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _gridItem(items[0]),
-              const SizedBox(width: 8),
-              _gridItem(items[1]),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _gridItem(items[2]),
-        ],
-      );
+    final n = items.length;
+
+    // Satırları belirle (üst satır kaç, alt satır kaç)
+    List<List<WardrobeItem>> rows;
+    if (n <= 2) {
+      rows = [items]; // hepsi tek satır
+    } else if (n == 3) {
+      rows = [items.take(2).toList(), items.skip(2).toList()]; // 2 + 1
+    } else if (n == 4) {
+      rows = [items.take(2).toList(), items.skip(2).toList()]; // 2 + 2
+    } else if (n == 5) {
+      rows = [items.take(3).toList(), items.skip(3).toList()]; // 3 + 2
+    } else {
+      rows = [items.take(3).toList(), items.skip(3).toList()]; // 3 + 3
     }
 
-    // 4 item: 2x2
-    if (items.length == 4) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int r = 0; r < rows.length; r++) ...[
+          if (r > 0) const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _gridItem(items[0]),
-              const SizedBox(width: 8),
-              _gridItem(items[1]),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _gridItem(items[2]),
-              const SizedBox(width: 8),
-              _gridItem(items[3]),
+              for (int c = 0; c < rows[r].length; c++) ...[
+                if (c > 0) const SizedBox(width: 8),
+                _gridItem(rows[r][c]),
+              ],
             ],
           ),
         ],
-      );
-    }
-
-    // 2 item: yan yana
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: items
-          .map(
-            (it) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _gridItem(it),
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  // Takı şeridi — küçük, altta, yan yana
-  Widget _jewelryRow(List<WardrobeItem> jewelry) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: jewelry
-          .map(
-            (it) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: SizedBox(
-                width: 46,
-                height: 46,
-                child: it.processedImageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: it.processedImageUrl!,
-                        fit: BoxFit.contain,
-                        memCacheWidth: 150,
-                        placeholder: (c, u) => const SizedBox.shrink(),
-                        errorWidget: (c, u, e) =>
-                            const Icon(Icons.diamond_outlined, size: 20),
-                      )
-                    : const Icon(Icons.diamond_outlined, size: 20),
-              ),
-            ),
-          )
-          .toList(),
+      ],
     );
   }
 
   Widget _gridItem(WardrobeItem it) {
     return SizedBox(
-      width: 100,
-      height: 100,
+      width: itemSize,
+      height: itemSize,
       child: it.processedImageUrl != null
           ? CachedNetworkImage(
               imageUrl: it.processedImageUrl!,

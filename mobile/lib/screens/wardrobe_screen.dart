@@ -358,9 +358,24 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Düzenle',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      const Text(
+                        'Düzenle',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Kapat',
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
@@ -394,22 +409,26 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     ),
                   const SizedBox(height: 20),
 
-                  // Kategori
-                  const Text(
-                    'Kategori',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: _dropdownDecoration(),
-                    items: categories
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                        .toList(),
-                    onChanged: (v) =>
-                        setSheetState(() => selectedCategory = v!),
-                  ),
-                  const SizedBox(height: 14),
+                  // Kategori (takıda gizli — takının tipi düzenlenmez)
+                  if (item.kind != 'Jewelry') ...[
+                    const Text(
+                      'Kategori',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: _dropdownDecoration(),
+                      items: categories
+                          .map(
+                            (c) => DropdownMenuItem(value: c, child: Text(c)),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setSheetState(() => selectedCategory = v!),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
 
                   // Renk
                   const Text(
@@ -427,26 +446,29 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Mevsim
-                  const Text(
-                    'Mevsim',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedSeason,
-                    decoration: _dropdownDecoration(),
-                    items: seasons.entries
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.key,
-                            child: Text(e.value),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setSheetState(() => selectedSeason = v!),
-                  ),
-                  const SizedBox(height: 14),
+                  // Mevsim (takıda gizli — takının mevsimi yok)
+                  if (item.kind != 'Jewelry') ...[
+                    const Text(
+                      'Mevsim',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedSeason,
+                      decoration: _dropdownDecoration(),
+                      items: seasons.entries
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e.key,
+                              child: Text(e.value),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setSheetState(() => selectedSeason = v!),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
 
                   // Güven notu — hallettiklerimizi say, sonuna üç nokta
                   Container(
