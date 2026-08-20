@@ -50,7 +50,8 @@ public class RuleBasedRecommender : IOutfitRecommender
         // Aday kombinler — BuildCandidates (takı + ceket dahil, tutarlı)
         var candidates = BuildCandidates(wardrobe, context);
         int poolSize = Math.Max(maxResults * 5, 25);
-        var selected = SelectDiverse(candidates, poolSize);
+        var jewelry = wardrobe.Where(i => i.Kind == ItemKind.Jewelry).ToList();
+        var selected = SelectDiverse(candidates, poolSize, jewelry, context);
         var page = selected.Skip(offset).Take(maxResults).ToList();
         return new OutfitResult(page);
     }
@@ -179,9 +180,7 @@ public class RuleBasedRecommender : IOutfitRecommender
                     var jacket = SelectOuterwear(items, outerwear, context);
                     if (jacket != null) items.Add(jacket);
 
-                    // Takı ekle
-                    var jew = SelectJewelry(items, jewelry, context);
-                    items.AddRange(jew);
+                   
 
                     var (score, reasons) = ScoreOutfit(items, context);
                     candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
@@ -196,8 +195,7 @@ public class RuleBasedRecommender : IOutfitRecommender
                 var jacket = SelectOuterwear(items, outerwear, context);
                 if (jacket != null) items.Add(jacket);
 
-                var jew = SelectJewelry(items, jewelry, context);
-                items.AddRange(jew);
+                
 
                 var (score, reasons) = ScoreOutfit(items, context);
                 candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
@@ -208,12 +206,14 @@ public class RuleBasedRecommender : IOutfitRecommender
 
     // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
-    private static IReadOnlyList<Outfit> SelectDiverse(List<Outfit> candidates, int maxResults)
+    private static IReadOnlyList<Outfit> SelectDiverse(
+    List<Outfit> candidates, int maxResults,
+    List<WardrobeItem> jewelry, OutfitContext context)
     {
         const double penaltyPerSharedItem = 0.15;
         var selected = new List<Outfit>();
         var pool = candidates.ToList();
-        var usedJewelry = new HashSet<Guid>();
+        var usedJewelry = new HashSet<Guid>(); // kullanılmış takılar
 
         while (selected.Count < maxResults && pool.Count > 0)
         {
@@ -222,14 +222,8 @@ public class RuleBasedRecommender : IOutfitRecommender
 
             foreach (var candidate in pool)
             {
-                // Bu adaydaki takılardan biri zaten kullanıldıysa, bu adayı ATLA (hard engelle)
-                bool hasUsedJewelry = candidate.Items
-                    .Any(i => i.Kind == ItemKind.Jewelry && usedJewelry.Contains(i.Id));
-                if (hasUsedJewelry) continue;
-
                 int shared = MaxSharedItems(candidate, selected);
                 double adjusted = candidate.Score - penaltyPerSharedItem * shared;
-
                 if (adjusted > bestAdjusted)
                 {
                     bestAdjusted = adjusted;
@@ -237,27 +231,23 @@ public class RuleBasedRecommender : IOutfitRecommender
                 }
             }
 
-            // Hiç uygun kalmadıysa (hepsi kullanılmış takı içeriyor), takı kısıtını gevşet
-            if (best is null)
-            {
-                foreach (var candidate in pool)
-                {
-                    int shared = MaxSharedItems(candidate, selected);
-                    double adjusted = candidate.Score - penaltyPerSharedItem * shared;
-                    if (adjusted > bestAdjusted)
-                    {
-                        bestAdjusted = adjusted;
-                        best = candidate;
-                    }
-                }
-            }
-
             if (best is null) break;
-            selected.Add(best);
             pool.Remove(best);
 
-            foreach (var jew in best.Items.Where(i => i.Kind == ItemKind.Jewelry))
-                usedJewelry.Add(jew.Id);
+            // Bu kombine, HENÜZ KULLANILMAMIŞ en uyumlu takıyı ata
+            var available = jewelry.Where(j => !usedJewelry.Contains(j.Id)).ToList();
+            var jew = SelectJewelry(best.Items.ToList(), available, context);
+            if (jew.Count > 0)
+            {
+                var withJewelry = best.Items.ToList();
+                withJewelry.AddRange(jew);
+                // Skoru takılı haliyle güncelle
+                var (score, reasons) = ScoreOutfit(withJewelry, context);
+                best = new Outfit { Items = withJewelry, Score = score, Reasons = reasons };
+                foreach (var j in jew) usedJewelry.Add(j.Id);
+            }
+
+            selected.Add(best);
         }
 
         return selected;
