@@ -49,7 +49,8 @@ public class RuleBasedRecommender : IOutfitRecommender
 
         // Aday kombinler — BuildCandidates (takı + ceket dahil, tutarlı)
         var candidates = BuildCandidates(wardrobe, context);
-        var selected = SelectDiverse(candidates, maxResults);
+        int poolSize = Math.Max(maxResults * 5, 25);
+        var selected = SelectDiverse(candidates, poolSize);
         var page = selected.Skip(offset).Take(maxResults).ToList();
         return new OutfitResult(page);
     }
@@ -209,12 +210,10 @@ public class RuleBasedRecommender : IOutfitRecommender
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
     private static IReadOnlyList<Outfit> SelectDiverse(List<Outfit> candidates, int maxResults)
     {
-        const double penaltyPerSharedItem = 0.15;    // ortak parça (genel)
-        const double jewelryReusePenalty = 0.30;     // takı tekrarı — daha güçlü ceza
-
+        const double penaltyPerSharedItem = 0.15;
         var selected = new List<Outfit>();
         var pool = candidates.ToList();
-        var usedJewelry = new HashSet<Guid>(); // seçilen kombinlerde kullanılmış takılar
+        var usedJewelry = new HashSet<Guid>();
 
         while (selected.Count < maxResults && pool.Count > 0)
         {
@@ -223,14 +222,13 @@ public class RuleBasedRecommender : IOutfitRecommender
 
             foreach (var candidate in pool)
             {
+                // Bu adaydaki takılardan biri zaten kullanıldıysa, bu adayı ATLA (hard engelle)
+                bool hasUsedJewelry = candidate.Items
+                    .Any(i => i.Kind == ItemKind.Jewelry && usedJewelry.Contains(i.Id));
+                if (hasUsedJewelry) continue;
+
                 int shared = MaxSharedItems(candidate, selected);
                 double adjusted = candidate.Score - penaltyPerSharedItem * shared;
-
-                // Takı tekrar cezası: bu adaydaki takılardan kaçı zaten kullanılmış
-                int reusedJewelry = candidate.Items
-                    .Where(i => i.Kind == ItemKind.Jewelry)
-                    .Count(i => usedJewelry.Contains(i.Id));
-                adjusted -= jewelryReusePenalty * reusedJewelry;
 
                 if (adjusted > bestAdjusted)
                 {
@@ -239,11 +237,25 @@ public class RuleBasedRecommender : IOutfitRecommender
                 }
             }
 
+            // Hiç uygun kalmadıysa (hepsi kullanılmış takı içeriyor), takı kısıtını gevşet
+            if (best is null)
+            {
+                foreach (var candidate in pool)
+                {
+                    int shared = MaxSharedItems(candidate, selected);
+                    double adjusted = candidate.Score - penaltyPerSharedItem * shared;
+                    if (adjusted > bestAdjusted)
+                    {
+                        bestAdjusted = adjusted;
+                        best = candidate;
+                    }
+                }
+            }
+
             if (best is null) break;
             selected.Add(best);
             pool.Remove(best);
 
-            // Seçilen kombinin takılarını "kullanılmış" olarak işaretle
             foreach (var jew in best.Items.Where(i => i.Kind == ItemKind.Jewelry))
                 usedJewelry.Add(jew.Id);
         }
@@ -420,18 +432,8 @@ public class RuleBasedRecommender : IOutfitRecommender
 
         if (scored.Count == 0) return new List<WardrobeItem>();
 
-        var selected = new List<WardrobeItem> { scored[0].item };
-
-        // 2. takı: farklı tip + skoru en yüksek olan (65+ zaten garantili)
-        var first = scored[0].item;
-        foreach (var (item, _) in scored.Skip(1))
-        {
-            if (item.JewelryType == first.JewelryType) continue; // farklı tip şart
-            selected.Add(item);
-            break; // maks 2
-        }
-
-        return selected;
+        // Maks 1 takı — en uyumlu olan
+        return new List<WardrobeItem> { scored[0].item };
     }
 
     // ── CEKET SEÇİMİ: mevsim uygunsa kombine en uyumlu ceketi ekler ──
