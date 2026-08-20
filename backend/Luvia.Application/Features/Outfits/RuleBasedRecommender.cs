@@ -209,10 +209,12 @@ public class RuleBasedRecommender : IOutfitRecommender
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
     private static IReadOnlyList<Outfit> SelectDiverse(List<Outfit> candidates, int maxResults)
     {
-        const double penaltyPerSharedItem = 0.15;   // ortak parça başına ceza
+        const double penaltyPerSharedItem = 0.15;    // ortak parça (genel)
+        const double jewelryReusePenalty = 0.30;     // takı tekrarı — daha güçlü ceza
 
         var selected = new List<Outfit>();
         var pool = candidates.ToList();
+        var usedJewelry = new HashSet<Guid>(); // seçilen kombinlerde kullanılmış takılar
 
         while (selected.Count < maxResults && pool.Count > 0)
         {
@@ -224,6 +226,12 @@ public class RuleBasedRecommender : IOutfitRecommender
                 int shared = MaxSharedItems(candidate, selected);
                 double adjusted = candidate.Score - penaltyPerSharedItem * shared;
 
+                // Takı tekrar cezası: bu adaydaki takılardan kaçı zaten kullanılmış
+                int reusedJewelry = candidate.Items
+                    .Where(i => i.Kind == ItemKind.Jewelry)
+                    .Count(i => usedJewelry.Contains(i.Id));
+                adjusted -= jewelryReusePenalty * reusedJewelry;
+
                 if (adjusted > bestAdjusted)
                 {
                     bestAdjusted = adjusted;
@@ -234,6 +242,10 @@ public class RuleBasedRecommender : IOutfitRecommender
             if (best is null) break;
             selected.Add(best);
             pool.Remove(best);
+
+            // Seçilen kombinin takılarını "kullanılmış" olarak işaretle
+            foreach (var jew in best.Items.Where(i => i.Kind == ItemKind.Jewelry))
+                usedJewelry.Add(jew.Id);
         }
 
         return selected;
