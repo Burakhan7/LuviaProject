@@ -186,13 +186,14 @@ public class RuleBasedRecommender : IOutfitRecommender
 
     // Aday üretimi — Recommend'ten çıkarıldı, tekrar kullanım için
     private List<Outfit> BuildCandidates(
-        IReadOnlyList<WardrobeItem> wardrobe, OutfitContext context)
+            IReadOnlyList<WardrobeItem> wardrobe, OutfitContext context)
     {
         var available = wardrobe.Where(i => i.IsAvailable).ToList();
         var tops = available.Where(i => i.Kind == ItemKind.Clothing && IsTop(i.Category)).ToList();
         var bottoms = available.Where(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category)).ToList();
         var dresses = available.Where(i => i.Category == Category.Dress).ToList();
         var shoes = available.Where(i => i.Kind == ItemKind.Shoes).ToList();
+        var jewelry = available.Where(i => i.Kind == ItemKind.Jewelry).ToList();
 
         var candidates = new List<Outfit>();
 
@@ -202,6 +203,11 @@ public class RuleBasedRecommender : IOutfitRecommender
                 {
                     var items = new List<WardrobeItem> { top, bottom, shoe };
                     if (!PassesHardConstraints(items, context)) continue;
+
+                    // Takı ekle (en uyumlu 1-2, farklı tip)
+                    var jew = SelectJewelry(items, jewelry, context);
+                    items.AddRange(jew);
+
                     var (score, reasons) = ScoreOutfit(items, context);
                     candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
                 }
@@ -211,12 +217,17 @@ public class RuleBasedRecommender : IOutfitRecommender
             {
                 var items = new List<WardrobeItem> { dress, shoe };
                 if (!PassesHardConstraints(items, context)) continue;
+
+                var jew = SelectJewelry(items, jewelry, context);
+                items.AddRange(jew);
+
                 var (score, reasons) = ScoreOutfit(items, context);
                 candidates.Add(new Outfit { Items = items, Score = score, Reasons = reasons });
             }
 
         return candidates;
     }
+
 
     // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
@@ -264,11 +275,16 @@ public class RuleBasedRecommender : IOutfitRecommender
         return max;
     }
 
-    // ── Yardımcı: kategori hangi slota ait ──
-    private static bool IsTop(Category c) => c is
-        Category.TShirt or Category.Shirt or Category.Sweater or
-        Category.Hoodie or Category.Cardigan or Category.Jacket or
-        Category.Coat or Category.Blazer;
+    // İç üst (altına giyilen — ceket hariç)
+    private static bool IsInnerTop(Category c) => c is
+        Category.TShirt or Category.Shirt or Category.Sweater or Category.Hoodie;
+
+    // Ceket katmanı (üstüne giyilen)
+    private static bool IsOuterwear(Category c) => c is
+        Category.Jacket or Category.Coat or Category.Blazer or Category.Cardigan;
+
+    // Geriye uyumluluk: "üst" = iç üst veya ceket (bazı yerler bunu kullanıyor olabilir)
+    private static bool IsTop(Category c) => IsInnerTop(c) || IsOuterwear(c);
 
     private static bool IsBottom(Category c) => c is
         Category.Jeans or Category.Pants or Category.Shorts or
@@ -351,6 +367,69 @@ public class RuleBasedRecommender : IOutfitRecommender
 
         return (total, reasons);
     }
+
+    // ── TAKI SEÇİMİ: kombine en uyumlu 1-2 takı ekler ──
+    private static List<WardrobeItem> SelectJewelry(
+        List<WardrobeItem> outfit, List<WardrobeItem> jewelry, OutfitContext ctx)
+    {
+        if (jewelry.Count == 0) return new List<WardrobeItem>();
+
+        // Her takının, kombine eklendiğindeki uyum skorunu hesapla (0-1)
+        double ScoreWith(List<WardrobeItem> items)
+        {
+            var tempReasons = new List<string>();
+            double color = ScoreColor(items, tempReasons);
+            double formality = ScoreFormality(items, tempReasons);
+            // Takı uyumu = renk + formalite (ağırlıklı)
+            return color * 0.6 + formality * 0.4;
+        }
+
+        // Baz skor (takısız kombin)
+        double baseScore = ScoreWith(outfit);
+
+        // Her takı için: kombin + o takı skoru
+        var scored = jewelry
+            .Select(j => (item: j, score: ScoreWith(new List<WardrobeItem>(outfit) { j })))
+            .OrderByDescending(x => x.score)
+            .ToList();
+
+        // 65 eşiği (0-1 ölçekte 0.65) altındakileri ele
+        var eligible = scored.Where(x => x.score >= 0.65).ToList();
+
+        if (eligible.Count == 0) return new List<WardrobeItem>();
+
+        var selected = new List<WardrobeItem>();
+
+        // 1. TAKI: en yüksek skorlu
+        var first = eligible[0].item;
+        selected.Add(first);
+
+        // 2. TAKI: kombin+1.takı üzerine, skoru en çok artıran (veya eşit tutan)
+        var withFirst = new List<WardrobeItem>(outfit) { first };
+        double scoreWithFirst = ScoreWith(withFirst);
+
+        WardrobeItem? bestSecond = null;
+        double bestSecondScore = scoreWithFirst;
+
+        foreach (var (item, _) in eligible.Skip(1))
+        {
+            // 2. takı 1.'den FARKLI tipte olmalı (2 saat, 2 yüzük engellenir)
+            if (item.JewelryType == first.JewelryType) continue;
+
+            var withBoth = new List<WardrobeItem>(withFirst) { item };
+            double s = ScoreWith(withBoth);
+            if (s >= bestSecondScore)
+            {
+                bestSecondScore = s;
+                bestSecond = item;
+            }
+        }
+
+        if (bestSecond != null) selected.Add(bestSecond);
+
+        return selected; // maks 2
+    }
+
     private static double ScoreColor(List<WardrobeItem> items, List<string> reasons)
     {
         // Nötr olmayan (canlı) renkleri ayır

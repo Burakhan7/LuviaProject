@@ -7,6 +7,7 @@ import '../models/outfit.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../services/auth_service.dart';
+import '../widgets/outfit_card.dart' show OutfitCard, OutfitCardGrid;
 import 'auth_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -533,32 +534,7 @@ class HomeScreenState extends State<HomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 90,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: outfit.items.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final item = outfit.items[i];
-                  return Container(
-                    width: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: item.processedImageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: item.processedImageUrl!,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 150,
-                          )
-                        : const Icon(Icons.checkroom),
-                  );
-                },
-              ),
-            ),
+            OutfitCardGrid(items: outfit.items),
             const SizedBox(height: 14),
             Text(
               'Bugünün kombini hazır',

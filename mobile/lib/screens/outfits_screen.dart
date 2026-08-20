@@ -6,6 +6,7 @@ import '../models/outfit.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../services/weather_service.dart';
+import '../widgets/outfit_card.dart' show OutfitCardGrid;
 
 class OutfitsScreen extends StatefulWidget {
   const OutfitsScreen({super.key});
@@ -149,7 +150,8 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
         msg = 'Konum servisi kapalı. Lütfen telefonun konumunu açın.';
         break;
       case WeatherStatus.deniedForever:
-        msg = 'Konum izni kalıcı olarak reddedilmiş. Ayarlardan izin vermelisin.';
+        msg =
+            'Konum izni kalıcı olarak reddedilmiş. Ayarlardan izin vermelisin.';
         showSettings = true;
         break;
       case WeatherStatus.denied:
@@ -320,7 +322,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                         child: Switch(
                           value: _useWeather,
                           onChanged: _toggleWeather,
-                          
+
                           activeColor: LuviaTheme.primary,
                         ),
                       ),
@@ -704,56 +706,8 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             ],
           ),
 
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: o.items.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) {
-                final item = o.items[i];
-                return SizedBox(
-                  width: 80, // sabit genişlik — daralmaz
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          width: 80,
-                          decoration: BoxDecoration(
-                            color: LuviaTheme.bgTop,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: item.processedImageUrl != null
-                              ? CachedNetworkImage(
-                                  imageUrl: item.processedImageUrl!,
-                                  fit: BoxFit.cover,
-                                  memCacheWidth:
-                                      300, // gösterilecek boyutta cache — bellek + hız
-                                  placeholder: (context, url) =>
-                                      Container(color: LuviaTheme.bgTop),
-                                  errorWidget: (context, url, error) =>
-                                      const Icon(Icons.checkroom),
-                                )
-                              : const Icon(
-                                  Icons.checkroom,
-                                  color: LuviaTheme.primary,
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${item.color} ${item.category}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
+          const SizedBox(height: 8),
+          OutfitCardGrid(items: o.items, showBackground: false),
           if (o.reasons.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
