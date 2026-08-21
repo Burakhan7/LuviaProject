@@ -205,6 +205,7 @@ _COLOR_REFS = {
     "Navy":      (30, 40, 90),
     "Purple":    (120, 60, 150),
     "Pink":      (230, 130, 180),
+    "Cream":     (245, 235, 210),
 }
 
 # Referansların LAB karşılıklarını bir kez hesapla (açılışta)
@@ -364,28 +365,38 @@ def analyze_part_image(cutout, category_from_seg, kind):
     result["lowConfidenceFields"] = low_fields
     result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
     return result, cutout   # ← cutout'u da döndür
+
 def dominant_color_masked(rgba_cutout):
     """Sadece opak (kıyafet) pikselleri sayarak baskın rengi bulur. Beyaz zemin karışmaz."""
     import numpy as np
     arr = np.array(rgba_cutout.convert("RGBA"))
     alpha = arr[:, :, 3]
     opaque = alpha > 128
-
     if opaque.sum() == 0:
         return color_name((128, 128, 128))   # hiç opak yoksa nötr
 
-    # Sadece opak piksellerin RGB'sini al, tek satırlık görüntü yap
-    pixels = arr[:, :, :3][opaque].astype("uint8")     # (N, 3)
-    strip = pixels.reshape(1, -1, 3)                    # (1, N, 3)
-    strip_img = Image.fromarray(strip, "RGB")
-    
+    # Sadece opak piksellerin RGB'si
+    pixels = arr[:, :, :3][opaque].astype("float32")   # (N, 3)
 
-    # median-cut ile baskın rengi bul (dominant_color'ın mantığı ama merkez kırpma YOK)
+    # ── WHITE BALANCE (gray-world) — ışık/renk sapmasını düzelt ──
+    # Varsayım: sahnenin ortalaması gri olmalı. Sarımsı/mavimsi ışığı nötrler.
+    means = pixels.mean(axis=0)                # her kanalın ortalaması [R, G, B]
+    gray = means.mean()                        # genel gri seviye
+    # Her kanalı, gri seviyeye getirecek şekilde ölçekle
+    scale = gray / (means + 1e-6)
+    # Aşırı düzeltmeyi sınırla (çok agresif olmasın)
+    scale = np.clip(scale, 0.6, 1.6)
+    balanced = np.clip(pixels * scale, 0, 255).astype("uint8")
+
+    # Dengelenmiş piksellerden baskın rengi bul
+    strip = balanced.reshape(1, -1, 3)                 # (1, N, 3)
+    strip_img = Image.fromarray(strip, "RGB")
     q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
     palette = q.getpalette()
     idx = sorted(q.getcolors(), reverse=True)[0][1]
     rgb = tuple(palette[idx * 3: idx * 3 + 3])
     return color_name(rgb)
+
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
 
