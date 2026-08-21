@@ -262,40 +262,43 @@ def color_name(rgb):
 
     print(f">>> RGB:{rgb} L={L:.0f} a={a:.0f} b={b:.0f} chroma={chroma:.0f}")
 
-    # ── 1. ÖZEL DÜŞÜK DOYGUNLUKLU RENK KONTROLLERİ (chroma >= 6) ──
-    # Adaçayı / Mint / Pastel Yeşil (a negatifliği b'den daha baskın veya a < -4)
+    # ── 1. GERÇEK NÖTR BÖLGE (chroma < 6: Renk tonu baskın değil, renksiz/ışık sapması) ──
+    if chroma < 6:
+        if L < 28:
+            return "Black"
+        elif L >= 55:
+            # Oda ışığındaki beyazlar L=55..75 aralığına düşebilir
+            if b > 8:
+                return "Beige" if L < 75 else "Cream"
+            return "White"
+        else:
+            # L: 28..55 aralığı
+            if b > 6:
+                return "Beige"
+            return "Gray"
+
+    # ── 2. DÜŞÜK DOYGUNLUKLU RENKLER (chroma >= 6) ──
+    # Adaçayı / Mint / Pastel Yeşil (a negatifliği b'den belirgin)
     if a < -4 and (a <= b):
         return "Green"
 
-    # Soluk Mavi / Kot Mavisi (b negatifliği a'dan daha belirgin ve L > 25)
-    if b < -2 and (b < a) and L > 25:
+    # Soluk Mavi / Kot Mavisi (chroma >= 6 iken b negatifliği a'dan belirgin)
+    if b < -3 and (b < a) and L > 25:
         return "Blue"
 
     # Pudra / Pastel Pembe
     if a > 6 and b < 5:
         return "Pink"
 
-    # ── 2. NÖTR BÖLGE VE IŞIK TOLERANSI ──
+    # Koyu ton kontrolleri (chroma >= 6 olsa bile çok koyu parçalar)
     if L < 28:
-        # Koyu bölge: siyah / lacivert / koyu kahve
         if b < -7:
             return "Navy"
         if b > 4:
             return "Brown"
         return "Black"
-    
-    # Oda ışığında çekilen beyazlar (L >= 55 ve çok düşük chroma)
-    elif L >= 55 and chroma < 6:
-        if b > 8:
-            return "Beige" if L < 75 else "Cream"
-        return "White"
-    
-    elif L < 55 and chroma < 6:
-        if b > 6:
-            return "Beige"
-        return "Gray"
 
-    # ── 3. DOYGUN RENKLER ──
+    # ── 3. DOYGUN RENKLER (CIELAB En Yakın Mesafe) ──
     best_name = "Gray"
     best_dist = float("inf")
     for name, ref_lab in _COLOR_REFS_LAB.items():
