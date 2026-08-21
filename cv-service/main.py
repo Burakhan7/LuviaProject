@@ -441,36 +441,56 @@ def analyze_part_image(cutout, category_from_seg, kind):
     result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
     return result, cutout   # ← cutout'u da döndür
 
-def dominant_color_masked(rgba_cutout):
-    """Sadece opak (kıyafet) pikselleri sayarak baskın rengi bulur. Beyaz zemin karışmaz."""
+def dominant_color_masked(img):
+    """
+    Arka plan şeffaf (RGBA) ise şeffaf pikselleri, 
+    düz siyah (0,0,0) veya düz beyaz (255,255,255) ise zemin piksellerini eler.
+    """
     import numpy as np
-    arr = np.array(rgba_cutout.convert("RGBA"))
+    from PIL import Image
+
+    # RGBA formatına çevir
+    rgba = img.convert("RGBA")
+    arr = np.array(rgba)
+    
     alpha = arr[:, :, 3]
-    opaque = alpha > 128
-    if opaque.sum() == 0:
-        return color_name((128, 128, 128))   # hiç opak yoksa nötr
+    rgb = arr[:, :, :3]
 
-    # Sadece opak piksellerin RGB'si
-    pixels = arr[:, :, :3][opaque].astype("float32")   # (N, 3)
+    # 1. Şeffaflık maskesi (varsa)
+    mask = alpha > 128
 
-    # ── WHITE BALANCE (gray-world) — ışık/renk sapmasını düzelt ──
-    # Varsayım: sahnenin ortalaması gri olmalı. Sarımsı/mavimsi ışığı nötrler.
-    means = pixels.mean(axis=0)                # her kanalın ortalaması [R, G, B]
-    gray = means.mean()                        # genel gri seviye
-    # Her kanalı, gri seviyeye getirecek şekilde ölçekle
-    scale = gray / (means + 1e-6)
-    # Aşırı düzeltmeyi sınırla (çok agresif olmasın)
-    scale = np.clip(scale, 0.6, 1.6)
-    balanced = np.clip(pixels * scale, 0, 255).astype("uint8")
+    # 2. Şeffaflık yoksa veya siyah zemin kalmışsa siyah pikselleri ele (R, G, B < 25)
+    not_black = ~((rgb[:, :, 0] < 25) & (rgb[:, :, 1] < 25) & (rgb[:, :, 2] < 25))
+    
+    # 3. Beyaz zemin kalmışsa beyaz pikselleri ele (R, G, B > 240)
+    not_white = ~((rgb[:, :, 0] > 240) & (rgb[:, :, 1] > 240) & (rgb[:, :, 2] > 240))
 
-    # Dengelenmiş piksellerden baskın rengi bul
-    strip = balanced.reshape(1, -1, 3)                 # (1, N, 3)
+    # Nihai maske: Şeffaf olmayan VE saf siyah/beyaz zemin olmayan gerçek ürün pikselleri
+    final_mask = mask & not_black & not_white
+
+    pixels = rgb[final_mask]
+
+    # Eğer geriye hiç piksel kalmazsa (örn. ürünün kendisi tamamen simsiyahsa)
+    if len(pixels) == 0:
+        pixels = rgb[mask]  # Sadece şeffaf olmayanları al
+        if len(pixels) == 0:
+            return color_name((128, 128, 128))
+
+    # Baskın rengi doğrudan piksellerin medyanı / quantize ile bul
+    strip = pixels.reshape(1, -1, 3).astype("uint8")
     strip_img = Image.fromarray(strip, "RGB")
+
     q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
     palette = q.getpalette()
-    idx = sorted(q.getcolors(), reverse=True)[0][1]
-    rgb = tuple(palette[idx * 3: idx * 3 + 3])
-    return color_name(rgb)
+    colors = q.getcolors()
+
+    if not colors:
+        return color_name((128, 128, 128))
+
+    idx = sorted(colors, reverse=True)[0][1]
+    dominant_rgb = tuple(palette[idx * 3 : idx * 3 + 3])
+
+    return color_name(dominant_rgb)
 
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
