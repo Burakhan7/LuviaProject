@@ -262,16 +262,18 @@ def color_name(rgb):
 
     print(f">>> RGB:{rgb} L={L:.0f} a={a:.0f} b={b:.0f} chroma={chroma:.0f}")
 
-    # ── 1. DÜŞÜK DOYGUNLUKLU ÖZEL TONLAR (Soluk Mavi / Pudra / Mint) ──
-    # Kot mavisi ve soğuk maviler düşük doygunlukta dahi b < -2 ve a <= 0 verir
-    if b < -2 and a <= 0 and L > 25:
+    # ── 1. ÖZEL DÜŞÜK DOYGUNLUKLU RENK KONTROLLERİ (chroma >= 6) ──
+    # Adaçayı / Mint / Pastel Yeşil (a negatifliği b'den daha baskın veya a < -4)
+    if a < -4 and (a <= b):
+        return "Green"
+
+    # Soluk Mavi / Kot Mavisi (b negatifliği a'dan daha belirgin ve L > 25)
+    if b < -2 and (b < a) and L > 25:
         return "Blue"
 
-    if chroma >= 6:
-        if a > 6 and b < 5:
-            return "Pink"
-        if a < -5 and b < 5:
-            return "Green"
+    # Pudra / Pastel Pembe
+    if a > 6 and b < 5:
+        return "Pink"
 
     # ── 2. NÖTR BÖLGE VE IŞIK TOLERANSI ──
     if L < 28:
@@ -282,15 +284,13 @@ def color_name(rgb):
             return "Brown"
         return "Black"
     
-    # Oda ışığında çekilen beyazlar L=55..70 aralığına düşebilir
+    # Oda ışığında çekilen beyazlar (L >= 55 ve çok düşük chroma)
     elif L >= 55 and chroma < 6:
-        # Hafif sıcaklık (sarı alt ton) varsa Krem/Bej
         if b > 8:
             return "Beige" if L < 75 else "Cream"
-        # Nötr veya hafif soğuk tonluysa beyazdır (oda ışığı kompanzasyonu)
         return "White"
     
-    elif L < 55 and chroma < 8:
+    elif L < 55 and chroma < 6:
         if b > 6:
             return "Beige"
         return "Gray"
