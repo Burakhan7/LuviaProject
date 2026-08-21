@@ -187,25 +187,49 @@ def dominant_color(img):
     return color_name(rgb)
 
 
-# Referans renkler — RGB olarak (LAB'e çevrilecek). Senin ColorName enum'ınla birebir.
 _COLOR_REFS = {
-    "Black":     (20, 20, 20),
-    "Gray":      (128, 128, 128),
-    "White":     (225, 225, 225),
-    "Beige":     (225, 200, 165),
-    "Khaki":     (140, 130, 90),
-    "Red":       (200, 30, 30),
-    "Burgundy":  (110, 30, 40),
-    "Orange":    (230, 130, 40),
-    "Brown":     (110, 70, 40),
-    "Yellow":    (235, 210, 60),
-    "Green":     (60, 140, 70),
-    "Turquoise": (60, 190, 190),
-    "Blue":      (50, 110, 200),
-    "Navy":      (30, 40, 90),
-    "Purple":    (120, 60, 150),
-    "Pink":      (230, 130, 180),
-    "Cream":     (245, 235, 210),
+    # ── Nötrler ──
+    "Black":       (20, 20, 20),
+    "Gray":        (128, 128, 128),
+    "White":       (225, 225, 225),
+    "Cream":       (245, 235, 210),
+    "Beige":       (225, 200, 165),
+    "Khaki":       (140, 130, 90),
+
+    # ── Yeşil (açık/normal/koyu) ──
+    "Green":       (60, 140, 70),    # normal
+    "Green_dark":  (70, 85, 45),     # koyu/zeytin/haki-yeşil
+    "Green_light": (150, 200, 130),  # açık/fıstık
+
+    # ── Kırmızı ailesi ──
+    "Red":         (200, 30, 30),
+    "Burgundy":    (110, 30, 40),
+
+    # ── Turuncu / Kahve / Sarı ──
+    "Orange":      (230, 130, 40),
+    "Brown":       (110, 70, 40),
+    "Brown_dark":  (70, 50, 35),     # koyu kahve
+    "Yellow":      (235, 210, 60),
+
+    # ── Mavi (açık/normal/koyu) ──
+    "Blue":        (50, 110, 200),   # normal
+    "Blue_light":  (120, 180, 230),  # açık/bebek mavisi
+    "Navy":        (30, 40, 90),     # koyu (lacivert)
+    "Turquoise":   (60, 190, 190),
+
+    # ── Mor / Pembe ──
+    "Purple":      (120, 60, 150),
+    "Pink":        (230, 130, 180),
+    "Pink_light":  (245, 200, 220),  # açık pembe/pudra
+}
+
+# Ton varyantlarını ana renk adına indir (çıktı hep ana renk olur)
+_COLOR_ALIAS = {
+    "Green_dark": "Green",
+    "Green_light": "Green",
+    "Brown_dark": "Brown",
+    "Blue_light": "Blue",
+    "Pink_light": "Pink",
 }
 
 # Referansların LAB karşılıklarını bir kez hesapla (açılışta)
@@ -248,7 +272,8 @@ def color_name(rgb):
         if dist < best_dist:
             best_dist = dist
             best_name = name
-    return best_name
+    # Varyantsa ana renge indir (Green_dark → Green)
+    return _COLOR_ALIAS.get(best_name, best_name)
 
 @app.get("/health")
 def health():
