@@ -262,42 +262,40 @@ def color_name(rgb):
 
     print(f">>> RGB:{rgb} L={L:.0f} a={a:.0f} b={b:.0f} chroma={chroma:.0f}")
 
-    # ── 1. HAFİF RENKLİ PASTEL / UÇUK TONLAR (chroma: 6 - 18) ──
-    # Düşük doygunlukta olsa bile belirgin bir renk tonu varsa önce yakala
-    if 6 <= chroma < 18:
-        # Açık / Pastel Mavi (Buz mavisi / Bebek mavisi)
-        if b < -5:
-            return "Blue"
-        # Açık Pembe / Pudra
-        if a > 7 and b < 5:
+    # ── 1. DÜŞÜK DOYGUNLUKLU ÖZEL TONLAR (Soluk Mavi / Pudra / Mint) ──
+    # Kot mavisi ve soğuk maviler düşük doygunlukta dahi b < -2 ve a <= 0 verir
+    if b < -2 and a <= 0 and L > 25:
+        return "Blue"
+
+    if chroma >= 6:
+        if a > 6 and b < 5:
             return "Pink"
-        # Açık Mint / Nane Yeşili
-        if a < -6 and b < 5:
+        if a < -5 and b < 5:
             return "Green"
 
-    # ── 2. GERÇEK NÖTR BÖLGE (chroma < 6 veya yukarıdaki filtrelere takılmayanlar) ──
-    if chroma < 18:
-        if L < 28:
-            # Koyu bölge: siyah / lacivert / koyu kahve
-            if b < -7:
-                return "Navy"
-            if b > 4:
-                return "Brown"
-            return "Black"
-        elif L < 75:
-            # Orta ve açık gri aralığı
-            if b > 8:
-                return "Beige"
-            return "Gray"
-        else:
-            # Çok açık nötrler (L >= 75)
-            if b > 10:
-                return "Cream" if L > 88 else "Beige"
-            if b < -5:
-                return "Blue"       # Çok açık buz mavisi güvenliği
-            return "White"
+    # ── 2. NÖTR BÖLGE VE IŞIK TOLERANSI ──
+    if L < 28:
+        # Koyu bölge: siyah / lacivert / koyu kahve
+        if b < -7:
+            return "Navy"
+        if b > 4:
+            return "Brown"
+        return "Black"
+    
+    # Oda ışığında çekilen beyazlar L=55..70 aralığına düşebilir
+    elif L >= 55 and chroma < 6:
+        # Hafif sıcaklık (sarı alt ton) varsa Krem/Bej
+        if b > 8:
+            return "Beige" if L < 75 else "Cream"
+        # Nötr veya hafif soğuk tonluysa beyazdır (oda ışığı kompanzasyonu)
+        return "White"
+    
+    elif L < 55 and chroma < 8:
+        if b > 6:
+            return "Beige"
+        return "Gray"
 
-    # ── 3. DOYGUN RENKLER (chroma >= 18) ──
+    # ── 3. DOYGUN RENKLER ──
     best_name = "Gray"
     best_dist = float("inf")
     for name, ref_lab in _COLOR_REFS_LAB.items():
@@ -306,7 +304,6 @@ def color_name(rgb):
             best_dist = dist
             best_name = name
 
-    # Varyantsa ana renge indir (Green_dark → Green)
     return _COLOR_ALIAS.get(best_name, best_name)
 
 @app.get("/health")
@@ -449,23 +446,31 @@ def analyze_part_image(cutout, category_from_seg, kind):
     return result, cutout   # ← cutout'u da döndür
 
 def dominant_color_masked(img: Image.Image):
-    """Sadece şeffaf olmayan (kıyafete ait) pikseller üzerinden baskın rengi bulur."""
     rgba = img.convert("RGBA")
     arr = np.array(rgba)
     
     alpha = arr[:, :, 3]
     rgb = arr[:, :, :3]
 
-    # Yarı şeffaf kenar piksellerini elemek için güvenli eşik
     mask = alpha > 160
     pixels = rgb[mask]
 
-    # Hiç opak piksel yoksa varsayılan dön
     if len(pixels) == 0:
         return color_name((128, 128, 128))
 
-    # Doğrudan kıyafet piksellerini quantize et (Beyaz veya siyah filtreleri olmadan!)
-    strip = pixels.reshape(1, -1, 3).astype("uint8")
+    # Kumaş kıvrımlarındaki derin gölgeleri elemek için parlaklık (Luminance) filtresi
+    # Y = 0.299R + 0.587G + 0.114B
+    luminance = 0.299 * pixels[:, 0] + 0.587 * pixels[:, 1] + 0.114 * pixels[:, 2]
+    median_lum = np.median(luminance)
+    
+    # Çok karanlık olmayan (gölgede kalmamış) ana yüzey piksellerini al
+    bright_enough = luminance >= (median_lum * 0.85)
+    valid_pixels = pixels[bright_enough]
+
+    if len(valid_pixels) == 0:
+        valid_pixels = pixels
+
+    strip = valid_pixels.reshape(1, -1, 3).astype("uint8")
     strip_img = Image.fromarray(strip, mode="RGB")
 
     q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
@@ -475,11 +480,11 @@ def dominant_color_masked(img: Image.Image):
     if not colors:
         return color_name((128, 128, 128))
 
-    # En çok tekrar eden rengin RGB'sini al
     idx = sorted(colors, reverse=True)[0][1]
     dominant_rgb = tuple(palette[idx * 3 : idx * 3 + 3])
 
     return color_name(dominant_rgb)
+
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
 
