@@ -335,39 +335,56 @@ def upload_to_storage(img: Image.Image) -> str:
 def analyze(req: AnalyzeRequest):
     img = download_image(req.imageUrl)
 
-    # 1) Kategori + tür
-    category, _, cat_low = classify(img, CATEGORY)
+    # 1) Arka planı sil (Cutout oluştur)
+    try:
+        print(">>> Arka plan siliniyor...")
+        cutout = remove_background(img)
+    except Exception as e:
+        print(f">>> Arka plan silme hatası: {e}")
+        cutout = img.convert("RGBA")
+
+    # 2) Kategori + tür
+    # CLIP sınıflandırması için beyaz arka planlı versiyonunu oluştur
+    white_bg = Image.new("RGB", cutout.size, (255, 255, 255))
+    white_bg.paste(cutout, mask=cutout.split()[-1] if cutout.mode == "RGBA" else None)
+
+    category, _, cat_low = classify(white_bg, CATEGORY)
     kind = kind_for(category)
 
-    # 2) Attribute'lar
-    result = {"category": category, "color": dominant_color(img)}
-        # Sadece dış-giyim türü parçalarda katman tespiti (ceket/mont/hırka/blazer)
+    # 3) Attribute'lar ve DOĞRU Renk Analizi (dominant_color_masked ile)
+    result = {
+        "category": category, 
+        "color": dominant_color_masked(cutout)  # ← Maskelenmiş piksel analizi
+    }
+
+    # Sadece dış-giyim türü parçalarda katman tespiti (ceket/mont/hırka/blazer)
     OUTERWEAR = {"Jacket", "Coat", "Cardigan", "Blazer"}
     if category in OUTERWEAR:
-        result["isLayered"] = detect_layering(img)
+        result["isLayered"] = detect_layering(white_bg)
+
     low_fields = []
     if cat_low:
         low_fields.append("Category")
+
     for field, group in PART_ATTRS[kind]:
-        label, _, low = classify(img, group)
+        label, _, low = classify(white_bg, group)
         key = field[0].lower() + field[1:]
         result[key] = label
         if low:
             low_fields.append(field)
+
     result["lowConfidenceFields"] = low_fields
 
-    # 3) Arka planı sil + Storage'a yükle
+    # 4) Storage'a yükle
     try:
-        print(">>> Arka plan siliniyor + Storage'a yükleniyor...")
-        cutout = remove_background(img)
+        print(">>> Storage'a yükleniyor...")
         result["processedImageUrl"] = upload_to_storage(cutout)
-        print(f">>> Yuklendi: {result['processedImageUrl']}")
+        print(f">>> Yüklendi: {result['processedImageUrl']}")
     except Exception as e:
         print(f">>> HATA: {e}")
         result["processedImageUrl"] = None
 
     return AnalyzeResponse(**result)
-
 
 def segment(img):
     inputs = _seg_processor(images=img, return_tensors="pt")
