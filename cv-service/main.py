@@ -394,26 +394,32 @@ def segment(img):
     return up.argmax(dim=1)[0].cpu().numpy()
 
 
-def cutout_from_mask(img, mask, pad=6):
-    # Maskede birden fazla ayrı bölge varsa (yansıma/ikinci açı), sadece EN BÜYÜĞÜNÜ al
-    labeled, num = ndimage.label(mask)
-    if num > 1:
-        sizes = ndimage.sum(mask, labeled, range(1, num + 1))
-        largest = np.argmax(sizes) + 1
-        mask = (labeled == largest)
-        print(f">>> {num} ayrı bölge bulundu, en büyüğü seçildi")
+def cutout_from_mask(img: Image.Image, mask: np.ndarray, pad: int = 6):
+    """Segmentasyon maskesine göre kıyafeti kesip şeffaf RGBA döndürür."""
+    # 1. Maske boyutunu orijinal görselin boyutuna eşitle (Güvenlik adımı)
+    if mask.shape != (img.height, img.width):
+        mask_img = Image.fromarray(mask.astype("uint8") * 255, mode="L")
+        mask_img = mask_img.resize(img.size, resample=Image.NEAREST)
+        mask = np.array(mask_img) > 128
 
     ys, xs = np.where(mask)
     if len(ys) == 0:
         return None
+
     h, w = mask.shape
-    y0 = max(0, int(ys.min()) - pad); y1 = min(h, int(ys.max()) + 1 + pad)
-    x0 = max(0, int(xs.min()) - pad); x1 = min(w, int(xs.max()) + 1 + pad)
+    y0 = max(0, int(ys.min()) - pad)
+    y1 = min(h, int(ys.max()) + 1 + pad)
+    x0 = max(0, int(xs.min()) - pad)
+    x1 = min(w, int(xs.max()) + 1 + pad)
+
     rgba = img.convert("RGBA")
-    alpha = Image.fromarray((mask.astype("uint8") * 255), "L")
-    from PIL import ImageFilter
-    alpha = alpha.filter(ImageFilter.GaussianBlur(1.2))
+    
+    # Maskeyi Alpha kanalına dönüştür ve hafif yumuşat
+    alpha = Image.fromarray((mask.astype("uint8") * 255), mode="L")
+    alpha = alpha.filter(ImageFilter.GaussianBlur(0.8))
     rgba.putalpha(alpha)
+
+    # Sadece kıyafetin olduğu alana crop uygula
     return rgba.crop((x0, y0, x1, y1))
 
 
@@ -441,44 +447,25 @@ def analyze_part_image(cutout, category_from_seg, kind):
     result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
     return result, cutout   # ← cutout'u da döndür
 
-def dominant_color_masked(img):
-    """
-    Arka plan şeffaf (RGBA) ise şeffaf pikselleri, 
-    düz siyah (0,0,0) veya düz beyaz (255,255,255) ise zemin piksellerini eler.
-    """
-    import numpy as np
-    from PIL import Image
-
-    # RGBA formatına çevir
+def dominant_color_masked(img: Image.Image):
+    """Sadece şeffaf olmayan (kıyafete ait) pikseller üzerinden baskın rengi bulur."""
     rgba = img.convert("RGBA")
     arr = np.array(rgba)
     
     alpha = arr[:, :, 3]
     rgb = arr[:, :, :3]
 
-    # 1. Şeffaflık maskesi (varsa)
-    mask = alpha > 128
+    # Yarı şeffaf kenar piksellerini elemek için güvenli eşik
+    mask = alpha > 160
+    pixels = rgb[mask]
 
-    # 2. Şeffaflık yoksa veya siyah zemin kalmışsa siyah pikselleri ele (R, G, B < 25)
-    not_black = ~((rgb[:, :, 0] < 25) & (rgb[:, :, 1] < 25) & (rgb[:, :, 2] < 25))
-    
-    # 3. Beyaz zemin kalmışsa beyaz pikselleri ele (R, G, B > 240)
-    not_white = ~((rgb[:, :, 0] > 240) & (rgb[:, :, 1] > 240) & (rgb[:, :, 2] > 240))
-
-    # Nihai maske: Şeffaf olmayan VE saf siyah/beyaz zemin olmayan gerçek ürün pikselleri
-    final_mask = mask & not_black & not_white
-
-    pixels = rgb[final_mask]
-
-    # Eğer geriye hiç piksel kalmazsa (örn. ürünün kendisi tamamen simsiyahsa)
+    # Hiç opak piksel yoksa varsayılan dön
     if len(pixels) == 0:
-        pixels = rgb[mask]  # Sadece şeffaf olmayanları al
-        if len(pixels) == 0:
-            return color_name((128, 128, 128))
+        return color_name((128, 128, 128))
 
-    # Baskın rengi doğrudan piksellerin medyanı / quantize ile bul
+    # Doğrudan kıyafet piksellerini quantize et (Beyaz veya siyah filtreleri olmadan!)
     strip = pixels.reshape(1, -1, 3).astype("uint8")
-    strip_img = Image.fromarray(strip, "RGB")
+    strip_img = Image.fromarray(strip, mode="RGB")
 
     q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
     palette = q.getpalette()
@@ -487,11 +474,11 @@ def dominant_color_masked(img):
     if not colors:
         return color_name((128, 128, 128))
 
+    # En çok tekrar eden rengin RGB'sini al
     idx = sorted(colors, reverse=True)[0][1]
     dominant_rgb = tuple(palette[idx * 3 : idx * 3 + 3])
 
     return color_name(dominant_rgb)
-
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
 
