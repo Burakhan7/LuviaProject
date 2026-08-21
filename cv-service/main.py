@@ -18,6 +18,7 @@ import time
 from scipy import ndimage
 from firebase_admin import credentials, storage
 from rembg import remove
+from PIL import Image, ImageFilter
 
 app = FastAPI(title="Luvia CV Service")
 SEG_MODEL_ID = "mattmdjaga/segformer_b2_clothes"
