@@ -189,47 +189,58 @@ def dominant_color(img):
 
 _COLOR_REFS = {
     # ── Nötrler ──
-    "Black":       (20, 20, 20),
-    "Gray":        (128, 128, 128),
-    "White":       (225, 225, 225),
-    "Cream":       (245, 235, 210),
-    "Beige":       (225, 200, 165),
-    "Khaki":       (140, 130, 90),
+    "Black":        (15, 15, 15),
+    "Gray_dark":    (70, 70, 70),
+    "Gray":         (128, 128, 128),
+    "Gray_light":   (190, 190, 190),
+    "White":        (245, 245, 245),       # 225'ten 245'e çekildi
+    "Cream":        (245, 238, 220),
+    "Beige":        (225, 205, 175),
+    "Khaki":        (140, 130, 90),
 
-    # ── Yeşil (açık/normal/koyu) ──
-    "Green":       (60, 140, 70),    # normal
-    "Green_dark":  (70, 85, 45),     # koyu/zeytin/haki-yeşil
-    "Green_light": (150, 200, 130),  # açık/fıstık
+    # ── Yeşil ──
+    "Green":        (60, 140, 70),
+    "Green_dark":   (45, 75, 45),
+    "Green_light":  (140, 200, 130),
+    "Green_mint":   (190, 230, 205),       # Açık nane/mint yeşili
 
-    # ── Kırmızı ailesi ──
-    "Red":         (200, 30, 30),
-    "Burgundy":    (110, 30, 40),
+    # ── Kırmızı / Bordo ──
+    "Red":          (200, 30, 30),
+    "Burgundy":     (110, 30, 40),
 
     # ── Turuncu / Kahve / Sarı ──
-    "Orange":      (230, 130, 40),
-    "Brown":       (110, 70, 40),
-    "Brown_dark":  (70, 50, 35),     # koyu kahve
-    "Yellow":      (235, 210, 60),
+    "Orange":       (230, 125, 40),
+    "Brown":        (110, 70, 40),
+    "Brown_dark":   (65, 45, 30),
+    "Yellow":       (235, 210, 50),
+    "Yellow_light": (245, 235, 160),       # Açık pastel sarı
 
-    # ── Mavi (açık/normal/koyu) ──
-    "Blue":        (50, 110, 200),   # normal
-    "Blue_light":  (120, 180, 230),  # açık/bebek mavisi
-    "Navy":        (30, 40, 90),     # koyu (lacivert)
-    "Turquoise":   (60, 190, 190),
+    # ── Mavi ──
+    "Blue":         (45, 105, 200),
+    "Blue_light":   (130, 185, 230),       # Bebek mavisi
+    "Blue_ice":     (195, 218, 235),       # (199, 217, 229) için tam eşleşen buz mavisi
+    "Navy":         (25, 35, 80),
+    "Turquoise":    (60, 185, 185),
 
     # ── Mor / Pembe ──
-    "Purple":      (120, 60, 150),
-    "Pink":        (230, 130, 180),
-    "Pink_light":  (245, 200, 220),  # açık pembe/pudra
+    "Purple":       (115, 60, 145),
+    "Lilac":        (205, 185, 225),       # Açık lila
+    "Pink":         (230, 115, 165),
+    "Pink_light":   (245, 195, 215),       # Pudra pembe
 }
 
-# Ton varyantlarını ana renk adına indir (çıktı hep ana renk olur)
 _COLOR_ALIAS = {
-    "Green_dark": "Green",
-    "Green_light": "Green",
-    "Brown_dark": "Brown",
-    "Blue_light": "Blue",
-    "Pink_light": "Pink",
+    "Gray_dark":    "Gray",
+    "Gray_light":   "Gray",
+    "Green_dark":   "Green",
+    "Green_light":  "Green",
+    "Green_mint":   "Green",
+    "Brown_dark":   "Brown",
+    "Yellow_light": "Yellow",
+    "Blue_light":   "Blue",
+    "Blue_ice":     "Blue",
+    "Lilac":        "Purple",
+    "Pink_light":   "Pink",
 }
 
 # Referansların LAB karşılıklarını bir kez hesapla (açılışta)
@@ -250,21 +261,42 @@ def color_name(rgb):
 
     print(f">>> RGB:{rgb} L={L:.0f} a={a:.0f} b={b:.0f} chroma={chroma:.0f}")
 
-    # ── NÖTR BÖLGE ──
+    # ── 1. HAFİF RENKLİ PASTEL / UÇUK TONLAR (chroma: 6 - 18) ──
+    # Düşük doygunlukta olsa bile belirgin bir renk tonu varsa önce yakala
+    if 6 <= chroma < 18:
+        # Açık / Pastel Mavi (Buz mavisi / Bebek mavisi)
+        if b < -5:
+            return "Blue"
+        # Açık Pembe / Pudra
+        if a > 7 and b < 5:
+            return "Pink"
+        # Açık Mint / Nane Yeşili
+        if a < -6 and b < 5:
+            return "Green"
+
+    # ── 2. GERÇEK NÖTR BÖLGE (chroma < 6 veya yukarıdaki filtrelere takılmayanlar) ──
     if chroma < 18:
         if L < 28:
-            # Koyu bölge: siyah / lacivert / koyu kahve ayrımı
+            # Koyu bölge: siyah / lacivert / koyu kahve
             if b < -7:
-                return "Navy"          # koyu + maviye kaçıyor → lacivert
-            if b > 2:
-                return "Brown"         # koyu + sıcak ton → koyu kahve
-            return "Black"             # koyu + renksiz → siyah
-        elif L < 55:
+                return "Navy"
+            if b > 4:
+                return "Brown"
+            return "Black"
+        elif L < 75:
+            # Orta ve açık gri aralığı
+            if b > 8:
+                return "Beige"
             return "Gray"
         else:
-            return "Beige" if b > 12 else "White"
+            # Çok açık nötrler (L >= 75)
+            if b > 10:
+                return "Cream" if L > 88 else "Beige"
+            if b < -5:
+                return "Blue"       # Çok açık buz mavisi güvenliği
+            return "White"
 
-    # ── DOYGUN RENKLER ──
+    # ── 3. DOYGUN RENKLER (chroma >= 18) ──
     best_name = "Gray"
     best_dist = float("inf")
     for name, ref_lab in _COLOR_REFS_LAB.items():
@@ -272,6 +304,7 @@ def color_name(rgb):
         if dist < best_dist:
             best_dist = dist
             best_name = name
+
     # Varyantsa ana renge indir (Green_dark → Green)
     return _COLOR_ALIAS.get(best_name, best_name)
 
