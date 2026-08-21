@@ -262,43 +262,47 @@ def color_name(rgb):
 
     print(f">>> RGB:{rgb} L={L:.0f} a={a:.0f} b={b:.0f} chroma={chroma:.0f}")
 
-    # ── 1. GERÇEK NÖTR BÖLGE (chroma < 6: Renk tonu baskın değil, renksiz/ışık sapması) ──
-    if chroma < 6:
-        if L < 28:
-            return "Black"
-        elif L >= 55:
-            # Oda ışığındaki beyazlar L=55..75 aralığına düşebilir
-            if b > 8:
-                return "Beige" if L < 75 else "Cream"
-            return "White"
-        else:
-            # L: 28..55 aralığı
-            if b > 6:
-                return "Beige"
-            return "Gray"
-
-    # ── 2. DÜŞÜK DOYGUNLUKLU RENKLER (chroma >= 6) ──
-    # Adaçayı / Mint / Pastel Yeşil (a negatifliği b'den belirgin)
-    if a < -4 and (a <= b):
-        return "Green"
-
-    # Soluk Mavi / Kot Mavisi (chroma >= 6 iken b negatifliği a'dan belirgin)
-    if b < -3 and (b < a) and L > 25:
-        return "Blue"
-
-    # Pudra / Pastel Pembe
-    if a > 6 and b < 5:
-        return "Pink"
-
-    # Koyu ton kontrolleri (chroma >= 6 olsa bile çok koyu parçalar)
+    # ── 1. KOYU BÖLGE (L < 28) ──
     if L < 28:
-        if b < -7:
+        if b < -6:
             return "Navy"
-        if b > 4:
+        if b > 4 and a > 1:
             return "Brown"
         return "Black"
 
-    # ── 3. DOYGUN RENKLER (CIELAB En Yakın Mesafe) ──
+    # ── 2. ÇOK AÇIK NÖTRLER / BEYAZ (L >= 72) ──
+    # Sadece gerçekten parlak ve açık olanlar buraya girer
+    if L >= 72 and chroma < 7:
+        if b > 9:
+            return "Cream" if L > 85 else "Beige"
+        if b < -4:
+            return "Blue"     # Çok açık buz mavisi
+        return "White"
+
+    # ── 3. HAFİF RENKLİ / ALT TONLU GRİLER (chroma >= 2 ve L < 72) ──
+    # Maviye çalan gri / kot mavisi / antrasit-mavi
+    if b < -1.5 and a <= 0:
+        return "Blue"
+
+    # Yeşile çalan gri / adaçayı / zeytin
+    if a < -2 and (a <= b):
+        return "Green"
+
+    # Sıcak tonlu / kahveye / beje çalan gri
+    if b > 4:
+        if L < 45 and a > 0:
+            return "Brown"
+        return "Beige"
+
+    # Pembeye / mora çalan hafif ton
+    if a > 4 and b < 3:
+        return "Pink"
+
+    # ── 4. GERÇEK / TAM NÖTR GRİ (chroma < 6 ve belirgin alt tonu olmayanlar) ──
+    if chroma < 6:
+        return "Gray"
+
+    # ── 5. DOYGUN RENKLER (CIELAB En Yakın Referans) ──
     best_name = "Gray"
     best_dist = float("inf")
     for name, ref_lab in _COLOR_REFS_LAB.items():
@@ -308,6 +312,7 @@ def color_name(rgb):
             best_name = name
 
     return _COLOR_ALIAS.get(best_name, best_name)
+
 
 @app.get("/health")
 def health():
