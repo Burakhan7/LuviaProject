@@ -189,61 +189,99 @@ def dominant_color(img):
 
 
 _COLOR_REFS = {
-    # ── Nötrler ──
-    "Black":        (15, 15, 15),
-    "Gray_dark":    (70, 70, 70),
-    "Gray":         (128, 128, 128),
-    "Gray_light":   (190, 190, 190),
-    "White":        (245, 245, 245),       # 225'ten 245'e çekildi
-    "Cream":        (245, 238, 220),
-    "Beige":        (225, 205, 175),
-    "Khaki":        (140, 130, 90),
+    # ── Nötrler (elif çoğunu yakalar ama yedek referans) ──
+    "Black":         (20, 20, 20),
+    "Gray":          (128, 128, 128),
+    "White":         (240, 240, 240),
+    "Cream":         (245, 238, 220),
+    "Beige":         (225, 205, 175),
+    "Khaki":         (140, 130, 90),
+    "Khaki_light":   (170, 160, 120),   # açık haki
+
+    # ── Kırmızı ailesi ──
+    "Red":           (200, 30, 30),
+    "Red_dark":      (150, 25, 25),     # koyu kırmızı
+    "Red_bright":    (225, 45, 45),     # parlak kırmızı
+    "Burgundy":      (110, 30, 40),
+    "Burgundy_light":(150, 50, 60),     # açık bordo
+
+    # ── Turuncu ──
+    "Orange":        (230, 125, 40),
+    "Orange_dark":   (200, 100, 30),    # koyu turuncu / kiremit
+    "Orange_light":  (245, 165, 90),    # açık turuncu / şeftali
+
+    # ── Kahve ──
+    "Brown":         (110, 70, 40),
+    "Brown_dark":    (75, 50, 35),      # koyu kahve
+    "Brown_light":   (160, 120, 85),    # açık kahve / taba
+
+    # ── Sarı ──
+    "Yellow":        (235, 210, 50),
+    "Yellow_dark":   (200, 175, 40),    # hardal
+    "Yellow_light":  (245, 230, 130),   # açık sarı
 
     # ── Yeşil ──
-    "Green":        (60, 140, 70),
-    "Green_dark":   (45, 75, 45),
-    "Green_light":  (140, 200, 130),
-    "Green_mint":   (190, 230, 205),       # Açık nane/mint yeşili
+    "Green":         (60, 140, 70),
+    "Green_dark":    (45, 80, 45),      # koyu / orman yeşili
+    "Green_light":   (140, 200, 130),   # açık yeşil
+    "Green_olive":   (110, 120, 60),    # zeytin / haki-yeşil
+    "Green_mint":    (170, 220, 190),   # nane / mint
 
-    # ── Kırmızı / Bordo ──
-    "Red":          (200, 30, 30),
-    "Burgundy":     (110, 30, 40),
-
-    # ── Turuncu / Kahve / Sarı ──
-    "Orange":       (230, 125, 40),
-    "Brown":        (110, 70, 40),
-    "Brown_dark":   (65, 45, 30),
-    "Yellow":       (235, 210, 50),
-    "Yellow_light": (245, 235, 160),       # Açık pastel sarı
+    # ── Turkuaz ──
+    "Turquoise":     (60, 185, 185),
+    "Turquoise_dark":(40, 130, 135),    # koyu turkuaz / petrol
 
     # ── Mavi ──
-    "Blue":         (45, 105, 200),
-    "Blue_light":   (130, 185, 230),       # Bebek mavisi
-    "Blue_ice":     (195, 218, 235),       # (199, 217, 229) için tam eşleşen buz mavisi
-    "Navy":         (25, 35, 80),
-    "Turquoise":    (60, 185, 185),
+    "Blue":          (45, 105, 200),
+    "Blue_dark":     (35, 75, 150),     # koyu mavi
+    "Blue_light":    (120, 175, 225),   # açık mavi
+    "Blue_ice":      (195, 218, 235),   # buz mavisi
+    "Blue_steel":    (100, 130, 165),   # çelik / griye kayan mavi
+    "Navy":          (25, 35, 80),      # lacivert
 
     # ── Mor / Pembe ──
-    "Purple":       (115, 60, 145),
-    "Lilac":        (205, 185, 225),       # Açık lila
-    "Pink":         (230, 115, 165),
-    "Pink_light":   (245, 195, 215),       # Pudra pembe
+    "Purple":        (115, 60, 145),
+    "Purple_dark":   (80, 45, 105),     # koyu mor
+    "Lilac":         (190, 165, 215),   # lila / açık mor
+    "Pink":          (230, 115, 165),
+    "Pink_light":    (245, 195, 215),   # pudra pembe
+    "Pink_hot":      (230, 70, 130),    # fuşya / canlı pembe
 }
 
 _COLOR_ALIAS = {
-    "Gray_dark":    "Gray",
-    "Gray_light":   "Gray",
-    "Green_dark":   "Green",
-    "Green_light":  "Green",
-    "Green_mint":   "Green",
-    "Brown_dark":   "Brown",
-    "Yellow_light": "Yellow",
-    "Blue_light":   "Blue",
-    "Blue_ice":     "Blue",
-    "Lilac":        "Purple",
-    "Pink_light":   "Pink",
+    # Khaki
+    "Khaki_light":    "Khaki",
+    # Kırmızı
+    "Red_dark":       "Red",
+    "Red_bright":     "Red",
+    "Burgundy_light": "Burgundy",
+    # Turuncu
+    "Orange_dark":    "Orange",
+    "Orange_light":   "Orange",
+    # Kahve
+    "Brown_dark":     "Brown",
+    "Brown_light":    "Brown",
+    # Sarı
+    "Yellow_dark":    "Yellow",
+    "Yellow_light":   "Yellow",
+    # Yeşil
+    "Green_dark":     "Green",
+    "Green_light":    "Green",
+    "Green_olive":    "Green",
+    "Green_mint":     "Green",
+    # Turkuaz
+    "Turquoise_dark": "Turquoise",
+    # Mavi
+    "Blue_dark":      "Blue",
+    "Blue_light":     "Blue",
+    "Blue_ice":       "Blue",
+    "Blue_steel":     "Blue",
+    # Mor / Pembe
+    "Purple_dark":    "Purple",
+    "Lilac":          "Purple",
+    "Pink_light":     "Pink",
+    "Pink_hot":       "Pink",
 }
-
 # Referansların LAB karşılıklarını bir kez hesapla (açılışta)
 def _rgb_to_lab(rgb):
     import numpy as np
@@ -262,43 +300,57 @@ def color_name(rgb):
 
     print(f">>> RGB:{rgb} L={L:.0f} a={a:.0f} b={b:.0f} chroma={chroma:.0f}")
 
-    # ── 1. GERÇEK NÖTR BÖLGE (chroma < 6: Renk tonu baskın değil, renksiz/ışık sapması) ──
-    if chroma < 6:
-        if L < 28:
-            return "Black"
-        elif L >= 55:
-            # Oda ışığındaki beyazlar L=55..75 aralığına düşebilir
-            if b > 8:
-                return "Beige" if L < 75 else "Cream"
-            return "White"
-        else:
-            # L: 28..55 aralığı
-            if b > 6:
-                return "Beige"
-            return "Gray"
-
-    # ── 2. DÜŞÜK DOYGUNLUKLU RENKLER (chroma >= 6) ──
-    # Adaçayı / Mint / Pastel Yeşil (a negatifliği b'den belirgin)
-    if a < -4 and (a <= b):
-        return "Green"
-
-    # Soluk Mavi / Kot Mavisi (chroma >= 6 iken b negatifliği a'dan belirgin)
-    if b < -3 and (b < a) and L > 25:
-        return "Blue"
-
-    # Pudra / Pastel Pembe
-    if a > 6 and b < 5:
-        return "Pink"
-
-    # Koyu ton kontrolleri (chroma >= 6 olsa bile çok koyu parçalar)
-    if L < 28:
-        if b < -7:
+    # ═══ 1. ÇOK KOYU BÖLGE (L < 22) ═══
+    # Siyah mı, koyu kahve mi, koyu yeşil mi, lacivert mi?
+    if L < 22:
+        # Yeşil tarafı (a belirgin negatif) → koyu yeşil
+        if a < -3 and abs(a) >= abs(b) * 0.6:
+            return "Green"
+        # Maviye kaçan koyu → lacivert
+        if b < -6:
             return "Navy"
-        if b > 4:
+        # Sıcak ton (a,b pozitif, belirgin) → koyu kahve
+        if a > 6 and b > 6:
             return "Brown"
+        # Renksiz koyu → siyah
         return "Black"
 
-    # ── 3. DOYGUN RENKLER (CIELAB En Yakın Mesafe) ──
+    # ═══ 2. GERÇEK NÖTR BÖLGE (chroma < 7) ═══
+    # Renk tonu yok denecek kadar az → gri tonları / beyaz / bej
+    if chroma < 7:
+        if L < 30:
+            return "Black"
+        elif L < 60:
+            return "Gray"
+        elif L < 80:
+            # Açık gri mi beyaz mı — b sıcaklığına bak
+            return "Beige" if b > 10 else "Gray" if L < 72 else "White"
+        else:
+            return "Beige" if b > 12 else "White"
+
+    # ═══ 3. DÜŞÜK DOYGUNLUK (chroma 7-16) — pastel/soluk tonlar ═══
+    if chroma < 16:
+        # Mavi-yeşil ayrımı: b işareti belirleyici
+        if a < -3:
+            # a negatif = yeşil-mavi tarafı
+            # İstatistik: açık yeşil turkuazdan yaygın → yeşile meyillen
+            # Turkuaz sadece BELİRGİN maviye kaçınca (b < -6)
+            if b < -6:
+                return "Turquoise"
+            return "Green"           # a<0, b>=-6 → yeşil (yaygın olan)
+        if b < -4:
+            return "Blue"
+        if a > 3 and b > 3:
+            if L < 70:
+                return "Khaki"
+            return "Beige"
+        if a > 5 and b < 4:
+            return "Pink"
+        if L > 75:
+            return "Beige" if b > 8 else "White"
+        return "Gray"
+
+    # ═══ 4. DOYGUN RENKLER (zengin palet + LAB en yakın) ═══
     best_name = "Gray"
     best_dist = float("inf")
     for name, ref_lab in _COLOR_REFS_LAB.items():
@@ -308,7 +360,6 @@ def color_name(rgb):
             best_name = name
 
     return _COLOR_ALIAS.get(best_name, best_name)
-
 
 @app.get("/health")
 def health():
