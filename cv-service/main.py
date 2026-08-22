@@ -340,10 +340,12 @@ def color_name(rgb):
             return "Green"           # a<0, b>=-6 → yeşil (yaygın olan)
         if b < -4:
             return "Blue"
-        if a > 3 and b > 3:
-            if L < 70:
-                return "Khaki"
-            return "Beige"
+        if a >= 2 and b > 6:
+            # Sıcak soluk ton: beige mi khaki mi
+            # Beige daha açık ve sarımsı (yüksek L), khaki daha koyu/mat
+            if L >= 62:
+                return "Beige"       # açık sıcak → bej
+            return "Khaki"           # koyu sıcak → haki
         if a > 5 and b < 4:
             return "Pink"
         if L > 75:
@@ -503,7 +505,7 @@ def analyze_part_image(cutout, category_from_seg, kind):
 def dominant_color_masked(img: Image.Image):
     rgba = img.convert("RGBA")
     arr = np.array(rgba)
-    
+
     alpha = arr[:, :, 3]
     rgb = arr[:, :, :3]
 
@@ -513,21 +515,19 @@ def dominant_color_masked(img: Image.Image):
     if len(pixels) == 0:
         return color_name((128, 128, 128))
 
-    # Kumaş kıvrımlarındaki derin gölgeleri elemek için parlaklık (Luminance) filtresi
-    # Y = 0.299R + 0.587G + 0.114B
+    # Parlaklık (luminance)
     luminance = 0.299 * pixels[:, 0] + 0.587 * pixels[:, 1] + 0.114 * pixels[:, 2]
     median_lum = np.median(luminance)
-    
-    # Çok karanlık olmayan (gölgede kalmamış) ana yüzey piksellerini al
+
+    # Gölgeleri ele — orta ve üst parlaklıktaki ana yüzey piksellerini al
     bright_enough = luminance >= (median_lum * 0.85)
     valid_pixels = pixels[bright_enough]
-
     if len(valid_pixels) == 0:
         valid_pixels = pixels
 
+    # Median-cut ile baskın 5 kümeyi bul
     strip = valid_pixels.reshape(1, -1, 3).astype("uint8")
     strip_img = Image.fromarray(strip, mode="RGB")
-
     q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
     palette = q.getpalette()
     colors = q.getcolors()
@@ -535,11 +535,22 @@ def dominant_color_masked(img: Image.Image):
     if not colors:
         return color_name((128, 128, 128))
 
-    idx = sorted(colors, reverse=True)[0][1]
-    dominant_rgb = tuple(palette[idx * 3 : idx * 3 + 3])
+    # En büyük 3 kümeyi al (sadece 1 değil) — daha kararlı baskın renk
+    top = sorted(colors, reverse=True)[:3]
+    total = sum(count for count, _ in top)
+    # Ağırlıklı ortalama RGB (küme boyutuna göre)
+    r = g = bl = 0.0
+    for count, idx in top:
+        cr = palette[idx * 3]
+        cg = palette[idx * 3 + 1]
+        cb = palette[idx * 3 + 2]
+        w = count / total
+        r += cr * w
+        g += cg * w
+        bl += cb * w
+    dominant_rgb = (int(round(r)), int(round(g)), int(round(bl)))
 
     return color_name(dominant_rgb)
-
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
 
