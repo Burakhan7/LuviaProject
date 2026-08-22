@@ -315,15 +315,16 @@ def color_name(rgb):
         # Renksiz koyu → siyah
         return "Black"
 
-    # ═══ 2. GERÇEK NÖTR BÖLGE (chroma < 10) ═══
-    # Chroma düşükse renk tonu güvenilmez — parlaklığa göre nötr ata
-    if chroma < 10:
+    # ═══ 2. GERÇEK NÖTR BÖLGE ═══
+    # Chroma düşük VE hiçbir kanal belirgin değilse nötr (renksiz)
+    # Ama a veya b belirginse (|a|>6 gibi), düşük chroma'da bile RENKLIDIR
+    is_truly_neutral = chroma < 10 and abs(a) < 6 and abs(b) < 8
+    if is_truly_neutral:
         if L < 28:
             return "Black"
         elif L < 58:
             return "Gray"
         elif L < 78:
-            # Açık nötr: bej mi gri mi beyaz mı
             if b > 10:
                 return "Beige"
             return "White" if L >= 70 else "Gray"
