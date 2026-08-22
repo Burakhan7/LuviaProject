@@ -503,6 +503,7 @@ def analyze_part_image(cutout, category_from_seg, kind):
     return result, cutout   # ← cutout'u da döndür
 
 def dominant_color_masked(img: Image.Image):
+    import colorsys
     rgba = img.convert("RGBA")
     arr = np.array(rgba)
 
@@ -510,47 +511,59 @@ def dominant_color_masked(img: Image.Image):
     rgb = arr[:, :, :3]
 
     mask = alpha > 160
-    pixels = rgb[mask]
+    pixels = rgb[mask].astype("float32")
 
     if len(pixels) == 0:
         return color_name((128, 128, 128))
 
-    # Parlaklık (luminance)
+    # ── YÖNTEM 3: Aydınlık pikselleri seç, gölgeleri at ──
     luminance = 0.299 * pixels[:, 0] + 0.587 * pixels[:, 1] + 0.114 * pixels[:, 2]
-    median_lum = np.median(luminance)
+    # En parlak %55'lik dilimi al (gölgeli alt %45 elenir)
+    threshold = np.percentile(luminance, 45)
+    bright = pixels[luminance >= threshold]
+    if len(bright) < 10:
+        bright = pixels  # çok az kalırsa hepsini kullan
 
-    # Gölgeleri ele — orta ve üst parlaklıktaki ana yüzey piksellerini al
-    bright_enough = luminance >= (median_lum * 0.85)
-    valid_pixels = pixels[bright_enough]
-    if len(valid_pixels) == 0:
-        valid_pixels = pixels
+    # ── YÖNTEM 1: HSV'ye çevir, parlaklığı (V) yok sayarak baskın TON+DOYGUNLUK bul ──
+    # Her pikseli HSV'ye çevir
+    r = bright[:, 0] / 255.0
+    g = bright[:, 1] / 255.0
+    b = bright[:, 2] / 255.0
+    maxc = np.maximum(np.maximum(r, g), b)
+    minc = np.minimum(np.minimum(r, g), b)
+    v = maxc
+    delta = maxc - minc
+    s = np.where(maxc > 0, delta / (maxc + 1e-6), 0)
 
-    # Median-cut ile baskın 5 kümeyi bul
-    strip = valid_pixels.reshape(1, -1, 3).astype("uint8")
-    strip_img = Image.fromarray(strip, mode="RGB")
-    q = strip_img.quantize(colors=5, method=Image.MEDIANCUT)
-    palette = q.getpalette()
-    colors = q.getcolors()
+    # Hue hesabı (0-360)
+    hue = np.zeros_like(maxc)
+    mask_delta = delta > 1e-6
+    # Kırmızı baskın
+    rc = (maxc == r) & mask_delta
+    hue[rc] = (60 * ((g[rc] - b[rc]) / delta[rc]) + 360) % 360
+    # Yeşil baskın
+    gc = (maxc == g) & mask_delta
+    hue[gc] = (60 * ((b[gc] - r[gc]) / delta[gc]) + 120) % 360
+    # Mavi baskın
+    bc = (maxc == b) & mask_delta
+    hue[bc] = (60 * ((r[bc] - g[bc]) / delta[bc]) + 240) % 360
 
-    if not colors:
-        return color_name((128, 128, 128))
+    # Ortalama H, S (dairesel ortalama hue) — parlaklık V'yi yüksek sabit tut
+    # Hue dairesel olduğu için sin/cos ile ortalama
+    hue_rad = np.radians(hue)
+    mean_sin = np.mean(np.sin(hue_rad))
+    mean_cos = np.mean(np.cos(hue_rad))
+    mean_hue = (np.degrees(np.arctan2(mean_sin, mean_cos)) + 360) % 360
+    mean_s = float(np.mean(s))
+    # V'yi (parlaklık) yüksek sabit al — gölge etkisini nötrle
+    fixed_v = float(np.percentile(v, 75))  # üst çeyrek parlaklık
 
-    # En büyük 3 kümeyi al (sadece 1 değil) — daha kararlı baskın renk
-    top = sorted(colors, reverse=True)[:3]
-    total = sum(count for count, _ in top)
-    # Ağırlıklı ortalama RGB (küme boyutuna göre)
-    r = g = bl = 0.0
-    for count, idx in top:
-        cr = palette[idx * 3]
-        cg = palette[idx * 3 + 1]
-        cb = palette[idx * 3 + 2]
-        w = count / total
-        r += cr * w
-        g += cg * w
-        bl += cb * w
-    dominant_rgb = (int(round(r)), int(round(g)), int(round(bl)))
+    # HSV → RGB (normalize edilmiş renk)
+    nr, ng, nb = colorsys.hsv_to_rgb(mean_hue / 360.0, mean_s, fixed_v)
+    dominant_rgb = (int(nr * 255), int(ng * 255), int(nb * 255))
 
     return color_name(dominant_rgb)
+
 class FullbodyResponse(BaseModel):
     items: list[AnalyzeResponse] = []
 
