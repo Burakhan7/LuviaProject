@@ -315,30 +315,33 @@ def color_name(rgb):
         # Renksiz koyu → siyah
         return "Black"
 
-    # ═══ 2. GERÇEK NÖTR BÖLGE (chroma < 7) ═══
-    # Renk tonu yok denecek kadar az → gri tonları / beyaz / bej
-    if chroma < 7:
-        if L < 30:
+    # ═══ 2. GERÇEK NÖTR BÖLGE (chroma < 10) ═══
+    # Chroma düşükse renk tonu güvenilmez — parlaklığa göre nötr ata
+    if chroma < 10:
+        if L < 28:
             return "Black"
-        elif L < 60:
+        elif L < 58:
             return "Gray"
-        elif L < 80:
-            # Açık gri mi beyaz mı — b sıcaklığına bak
-            return "Beige" if b > 10 else "Gray" if L < 72 else "White"
+        elif L < 78:
+            # Açık nötr: bej mi gri mi beyaz mı
+            if b > 10:
+                return "Beige"
+            return "White" if L >= 70 else "Gray"
         else:
             return "Beige" if b > 12 else "White"
 
-    # ═══ 3. DÜŞÜK DOYGUNLUK (chroma 7-16) — pastel/soluk tonlar ═══
-    if chroma < 16:
-        # Mavi-yeşil ayrımı: b işareti belirleyici
+    # ═══ 3. DÜŞÜK DOYGUNLUK (chroma 10-18) — soluk ama belirgin tonlar ═══
+    if chroma < 18:
+        # Çok açık + hala düşük doygunluk → beyaz/açık nötr (renk deme)
+        if L > 75 and chroma < 13:
+            return "Beige" if b > 10 else "White"
+
+        # Mavi-yeşil ayrımı
         if a < -3:
-            # a negatif = yeşil-mavi tarafı
-            # İstatistik: açık yeşil turkuazdan yaygın → yeşile meyillen
-            # Turkuaz sadece BELİRGİN maviye kaçınca (b < -6)
             if b < -6:
                 return "Turquoise"
-            return "Green"           # a<0, b>=-6 → yeşil (yaygın olan)
-        if b < -4:
+            return "Green"
+        if b < -5:
             return "Blue"
         if a >= 2 and b > 6:
             # Sıcak soluk ton: beige mi khaki mi
