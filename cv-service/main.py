@@ -320,9 +320,9 @@ def color_name(rgb):
     # Ama a veya b belirginse (|a|>6 gibi), düşük chroma'da bile RENKLIDIR
     is_truly_neutral = chroma < 10 and abs(a) < 6 and abs(b) < 8
     if is_truly_neutral:
-        if L < 28:
-            return "Black"
-        elif L < 58:
+        if L < 40:
+            return "Black"        # koyu nötr → siyah (koyu gri nadir, siyah yaygın)
+        elif L < 62:
             return "Gray"
         elif L < 78:
             if b > 10:
