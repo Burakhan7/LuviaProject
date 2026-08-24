@@ -318,7 +318,7 @@ def color_name(rgb):
     # ═══ 2. GERÇEK NÖTR BÖLGE ═══
     # Chroma düşük VE hiçbir kanal belirgin değilse nötr (renksiz)
     # Ama a veya b belirginse (|a|>6 gibi), düşük chroma'da bile RENKLIDIR
-    is_truly_neutral = chroma < 10 and abs(a) < 6 and abs(b) < 8
+    is_truly_neutral = chroma < 10 and abs(a) < 5 and abs(b) < 6
     if is_truly_neutral:
         if L < 40:
             return "Black"        # koyu nötr → siyah (koyu gri nadir, siyah yaygın)
@@ -333,8 +333,8 @@ def color_name(rgb):
 
     # ═══ 3. DÜŞÜK DOYGUNLUK (chroma 10-18) — soluk ama belirgin tonlar ═══
     if chroma < 18:
-        # Çok açık + hala düşük doygunluk → beyaz/açık nötr (renk deme)
-        if L > 75 and chroma < 13:
+        # Çok açık + düşük doygunluk → beyaz/bej AMA belirgin mavi/yeşil tonu yoksa
+        if L > 75 and chroma < 13 and b > -6 and a > -6:
             return "Beige" if b > 10 else "White"
 
         # Mavi-yeşil ayrımı
