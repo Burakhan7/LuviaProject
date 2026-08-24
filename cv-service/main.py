@@ -337,12 +337,17 @@ def color_name(rgb):
         if L > 75 and chroma < 13 and b > -6 and a > -6:
             return "Beige" if b > 10 else "White"
 
-        # Mavi-yeşil ayrımı
         if a < -3:
-            if b < -6:
+            # Çok açık + düşük doygunluk + maviye kaçık → buz mavisi (Blue)
+            if L > 78 and b < -4:
+                return "Blue"
+            # Doygun turkuaz: a negatif VE b negatif VE yeterli doygunluk
+            if b < -6 and chroma >= 12:
                 return "Turquoise"
-            return "Green"
-        if b < -5:
+            # a negatif, b pozitif/nötr → yeşil
+            if b >= -6:
+                return "Green"
+            # Kalan (a<-3, b<-6, düşük chroma) → açık mavi
             return "Blue"
         if a >= 2 and b > 6:
             # Sıcak soluk ton: beige mi khaki mi
