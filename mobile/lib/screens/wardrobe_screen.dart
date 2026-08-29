@@ -5,14 +5,16 @@ import '../models/wardrobe_item.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../theme.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
   @override
-  State<WardrobeScreen> createState() => _WardrobeScreenState();
+  State<WardrobeScreen> createState() => WardrobeScreenState();
 }
 
-class _WardrobeScreenState extends State<WardrobeScreen> {
+class WardrobeScreenState extends State<WardrobeScreen> {
   final _api = ApiService();
   final _storage = StorageService();
   late Future<List<WardrobeItem>> _future;
@@ -21,6 +23,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   int _bulkCurrent = 0; // şu an kaçıncı foto
   int _bulkTotal = 0; // toplam kaç foto
   int _bulkFailed = 0; // kaç tanesi başarısız
+  final GlobalKey _fabKey = GlobalKey();
+  final GlobalKey _firstItemKey = GlobalKey();
+  bool _cameraDismissedThisSession =
+      false; // kamera balonu 3-tıkla kapatıldı (oturumluk)
+  bool _cardTutorialShown = false; // kart turu bu oturumda tetiklendi
+  int _lastItemCount = 0;
 
   String _selectedFilter = 'Tümü';
 
@@ -59,6 +67,117 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         ).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     }
+  }
+
+  // main'den çağrılır — galeri sekmesine gelince kamera balonunu kontrol et
+  void checkCameraTutorial() {
+    _maybeShowCameraTutorial(_lastItemCount);
+  }
+
+  // ── TUR A: Kamera balonu (galeri boşken, ısrarcı) ──
+  bool _cameraTutorialActive = false;
+  int _cameraOverlayTaps = 0;
+  TutorialCoachMark? _cameraTutorial;
+
+  Future<void> _maybeShowCameraTutorial(int itemCount) async {
+    if (itemCount > 0) return; // galeri doluysa gösterme
+    if (_cameraTutorialActive) return; // zaten açıksa
+    if (_cameraDismissedThisSession) return; // bu oturumda 3-tıkla kapatıldıysa
+
+    _cameraTutorialActive = true;
+    _cameraOverlayTaps = 0;
+
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) {
+      _cameraTutorialActive = false;
+      return;
+    }
+
+    _cameraTutorial = TutorialCoachMark(
+      targets: [
+        TargetFocus(
+          identify: "fab",
+          keyTarget: _fabKey,
+          enableOverlayTab: false, // boş yere tık kapatmaz (ısrarcı)
+          enableTargetTab: true, // FAB'a tık aktif
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: const Text(
+                'Buradan kıyafet ekle 👕\nAynı anda birden fazla fotoğraf: boydan 3, tek parça 5 📸',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      ],
+      colorShadow: LuviaTheme.primary,
+      hideSkip: true, // "Geç" yok
+      onClickTarget: (target) {
+        // Kullanıcı kameraya (FAB) bastı → balon kapansın + kamera açılsın
+        _cameraDismissedThisSession = true;
+        _cameraTutorial?.finish();
+        _showAddSheet(); // gerçek fotoğraf ekleme fonksiyonu
+      },
+      onFinish: () {
+        _cameraTutorialActive = false;
+      },
+    )..show(context: context);
+  }
+
+  // ── TUR B: Kart balonları (fotoğraf sonrası, bir kez kalıcı) ──
+  Future<void> _maybeShowCardTutorial(int itemCount) async {
+    if (itemCount == 0) return;
+    if (_cardTutorialShown) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('gallery_tutorial_done') ?? false) return;
+
+    _cardTutorialShown = true;
+
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
+    TutorialCoachMark(
+      targets: [
+        TargetFocus(
+          identify: "availability",
+          keyTarget: _firstItemKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: const Text(
+                'Bir kıyafete çift dokunarak kombin önerilerine dahil/hariç edebilirsin ✨',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "delete",
+          keyTarget: _firstItemKey,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: const Text(
+                'Silmek için kıyafete uzun bas 🗑️',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      ],
+      colorShadow: LuviaTheme.primary,
+      textSkip: "Geç",
+
+      onFinish: () {
+        prefs.setBool('gallery_tutorial_done', true);
+      },
+      onSkip: () {
+        prefs.setBool('gallery_tutorial_done', true);
+        return true;
+      },
+    ).show(context: context);
   }
 
   Future<void> _confirmDelete(WardrobeItem item) async {
@@ -358,24 +477,32 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'Düzenle',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 4),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'Düzenle',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Kapat',
-                      ),
-                    ],
+                        const Spacer(),
+                        Material(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => Navigator.pop(context),
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Icon(Icons.close, size: 26),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -669,6 +796,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               child: CircularProgressIndicator(color: Colors.white),
             )
           : FloatingActionButton(
+              key: _fabKey,
               onPressed: _showAddSheet,
               child: const Icon(Icons.add_a_photo),
             ),
@@ -744,13 +872,62 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   }
 
                   final all = snap.data ?? [];
+                  _lastItemCount = all.length;
                   final items = all.where(_matchesFilter).toList();
 
                   if (all.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Gardırop boş. + ile kıyafet ekle!',
-                        style: TextStyle(color: Colors.black54),
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 96,
+                              height: 96,
+                              decoration: BoxDecoration(
+                                color: LuviaTheme.primary.withValues(
+                                  alpha: 0.10,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.checkroom,
+                                size: 48,
+                                color: LuviaTheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Gardırobun boş',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'İlk kıyafetini ekle, Luvia senin için kombin önermeye başlasın. Boydan ya da tek parça, fark etmez.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            FilledButton.icon(
+                              onPressed: _showAddSheet,
+                              icon: const Icon(Icons.add_a_photo),
+                              label: const Text('Fotoğraf Ekle'),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 28,
+                                  vertical: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }
@@ -762,6 +939,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       ),
                     );
                   }
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (items.isEmpty) {
+                      _maybeShowCameraTutorial(items.length);
+                    } else {
+                      _maybeShowCardTutorial(items.length);
+                    }
+                  });
 
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
@@ -776,6 +960,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     itemBuilder: (_, i) {
                       final item = items[i];
                       return GestureDetector(
+                        key: i == 0 ? _firstItemKey : null,
                         onTap: () => _showEditSheet(item),
                         onDoubleTap: () => _toggleAvailability(item),
                         onLongPress: () => _confirmDelete(item),
