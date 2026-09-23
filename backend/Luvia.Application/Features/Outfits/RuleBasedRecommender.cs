@@ -467,12 +467,12 @@ public class RuleBasedRecommender : IOutfitRecommender
             // - En düşük 18°+ ve gün dengeli (fark<6) → ceket YOK
             // - En düşük < 15° → ceket gerekli (serin)
             // - Fark >= 8° (değişken gün) → çıkarılabilir katman için ceket öner
-            if (minT >= 18 && fark < 6)
-                ceketGerekli = false;              // ılık ve sabit → ceket yok
+            if (minT >= 18)
+                ceketGerekli = false;              // en düşük ılık → ceket yok (fark ne olursa)
             else if (minT < 15)
-                ceketGerekli = true;               // serin → ceket
+                ceketGerekli = true;               // serin/soğuk → ceket
             else if (fark >= 8)
-                ceketGerekli = true;               // değişken → çıkarılabilir katman
+                ceketGerekli = true;               // 15-18 arası + değişken → çıkarılabilir katman
             else
                 ceketGerekli = false;              // 15-18 arası dengeli → ceket yok
         }
