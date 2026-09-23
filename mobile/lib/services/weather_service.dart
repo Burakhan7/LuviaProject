@@ -55,6 +55,92 @@ class DailyForecast {
     }
     return 'Bugün ${minTemp.round()}° - ${maxTemp.round()}° arası, dengeli bir gün.';
   }
+
+  /// Baktığın saatten sonraki zaman dilimlerinin hava durumu (yorumlu).
+  String get slotAdvice {
+    final now = DateTime.now().hour;
+
+    // 4 dilim: Sabah 6-11, Öğle 11-17, Akşam 17-22, Gece 22-6
+    final dilimler = [
+      ('Sabah', 6, 11),
+      ('Öğle', 11, 17),
+      ('Akşam', 17, 22),
+      ('Gece', 22, 30), // 22-06 (ertesi gün) — 30 = 24+6
+    ];
+
+    // Her dilimin ortalama sıcaklığını hesapla
+    String? dilimSicaklik(int start, int end) {
+      final temps = slots
+          .where((s) {
+            final h = s.hour < 6 ? s.hour + 24 : s.hour; // gece sarması
+            return h >= start && h < end;
+          })
+          .map((s) => s.temp)
+          .toList();
+      if (temps.isEmpty) return null;
+      final avg = temps.reduce((a, b) => a + b) / temps.length;
+      return '${avg.round()}°';
+    }
+
+    // Sıcaklığa göre kısa yorum
+    String yorum(double t) {
+      if (t >= 28) return 'sıcak';
+      if (t >= 22) return 'ılık';
+      if (t >= 16) return 'serin';
+      if (t >= 10) return 'soğukça';
+
+      return 'soğuk';
+    }
+
+    // Baktığın saatten SONRAKI dilimleri topla
+    final parts = <String>[];
+    for (final (isim, start, end) in dilimler) {
+      // Bu dilim şu andan sonra mı başlıyor/devam ediyor?
+      final nowAdj = now < 6 ? now + 24 : now;
+      if (end <= nowAdj) continue; // geçmiş dilim, atla
+
+      final temps = slots
+          .where((s) {
+            final h = s.hour < 6 ? s.hour + 24 : s.hour;
+            return h >= start && h < end;
+          })
+          .map((s) => s.temp)
+          .toList();
+      if (temps.isEmpty) continue;
+      final avg = temps.reduce((a, b) => a + b) / temps.length;
+      parts.add('$isim ${yorum(avg)} ${avg.round()}°');
+    }
+
+    if (parts.isEmpty) return advice; // dilim yoksa gün geneli
+    return parts.join(', ');
+  }
+
+  /// Çıkış saatinden (baktığın saat + hazırlık payı) sonraki min/max sıcaklık.
+  /// Kombin motoru bununla katman kararı verir.
+  (double, double) get outboundMinMax {
+    final now = DateTime.now().hour;
+    // Hazırlık payı: kullanıcı ~2 saat sonra çıkar (sabah erkense biraz daha)
+    int cikis = now + 2;
+    if (now >= 6 && now < 10) cikis = 12; // sabah 6-10 → en geç 12'de çıkar
+    if (cikis > 23) cikis = now; // gece ise şu andan itibaren
+
+    final temps = slots
+        .where((s) {
+          final h = s.hour < 6 ? s.hour + 24 : s.hour;
+          final c = cikis < 6 ? cikis + 24 : cikis;
+          return h >= c;
+        })
+        .map((s) => s.temp)
+        .toList();
+
+    if (temps.isEmpty) {
+      // Çıkış sonrası dilim yoksa → tüm günün min/max'ı
+      return (minTemp, maxTemp);
+    }
+    final mn = temps.reduce((a, b) => a < b ? a : b);
+    final mx = temps.reduce((a, b) => a > b ? a : b);
+    return (mn, mx);
+  }
 }
 
 class WeatherService {

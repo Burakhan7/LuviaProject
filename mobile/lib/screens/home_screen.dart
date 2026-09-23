@@ -88,8 +88,14 @@ class HomeScreenState extends State<HomeScreen> {
         _todayForecast?.season ??
         _currentWeather?.season ??
         WeatherService.seasonFromMonth();
+    final (mn, mx) = _todayForecast?.outboundMinMax ?? (null, null);
     setState(() {
-      _dailyOutfitFuture = _api.getDailyOutfit(season, 'Casual');
+      _dailyOutfitFuture = _api.getDailyOutfit(
+        season,
+        'Casual',
+        minTemp: mn,
+        maxTemp: mx,
+      );
     });
   }
 
@@ -339,7 +345,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            f.advice,
+            f.slotAdvice,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 13,

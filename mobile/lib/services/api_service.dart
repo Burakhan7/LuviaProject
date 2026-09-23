@@ -54,6 +54,8 @@ class ApiService {
     String? preferredColor, // isteğe bağlı
     String? preferredStyle, // isteğe bağlı
     int offset = 0, // sonraki 5 için
+    double? minTemp, // çıkış-sonrası en düşük sıcaklık
+    double? maxTemp, // çıkış-sonrası en yüksek sıcaklık
   }) async {
     // Query parametrelerini oluştur
     final params = <String, String>{
@@ -63,6 +65,8 @@ class ApiService {
     };
     if (preferredColor != null) params['preferredColor'] = preferredColor;
     if (preferredStyle != null) params['preferredStyle'] = preferredStyle;
+    if (minTemp != null) params['minTemp'] = minTemp.toStringAsFixed(1);
+    if (maxTemp != null) params['maxTemp'] = maxTemp.toStringAsFixed(1);
 
     final uri = Uri.parse(
       '$baseUrl/outfits/$_userId',
@@ -125,10 +129,19 @@ class ApiService {
   }
 
   // Günün kombini — tek öneri, determinist
-  Future<Outfit?> getDailyOutfit(String season, String formality) async {
+  Future<Outfit?> getDailyOutfit(
+    String season,
+    String formality, {
+    double? minTemp,
+    double? maxTemp,
+  }) async {
+    final params = <String, String>{'season': season, 'formality': formality};
+    if (minTemp != null) params['minTemp'] = minTemp.toStringAsFixed(1);
+    if (maxTemp != null) params['maxTemp'] = maxTemp.toStringAsFixed(1);
+
     final uri = Uri.parse(
       '$baseUrl/outfits/$_userId/daily',
-    ).replace(queryParameters: {'season': season, 'formality': formality});
+    ).replace(queryParameters: params);
     final response = await http.get(uri);
 
     if (response.statusCode != 200) {
@@ -137,7 +150,7 @@ class ApiService {
 
     final Map<String, dynamic> data = jsonDecode(response.body);
     final outfitJson = data['outfit'];
-    if (outfitJson == null) return null; // yeterli parça yok
+    if (outfitJson == null) return null;
 
     return Outfit.fromJson(outfitJson);
   }

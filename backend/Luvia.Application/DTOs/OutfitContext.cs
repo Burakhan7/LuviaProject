@@ -11,5 +11,7 @@ public record OutfitContext(
     Season Season,
     Formality TargetFormality,
     ColorName? PreferredColor = null,   
-    Style? PreferredStyle = null        
+    Style? PreferredStyle = null,
+        double? MinTemp = null,   // çýkýþ-sonrasý en düþük sýcaklýk (°C)
+    double? MaxTemp = null    // çýkýþ-sonrasý en yüksek sýcaklýk (°C)
 );

@@ -159,7 +159,31 @@ public class RuleBasedRecommender : IOutfitRecommender
     {
         var available = wardrobe.Where(i => i.IsAvailable).ToList();
         // İç üst (ceket hariç)
-        var tops = available.Where(i => i.Kind == ItemKind.Clothing && IsInnerTop(i.Category)).ToList();
+        // İç üst uygunluğu: değişken/sıcak günde kalın üstü (kazak/hoodie) ele
+        bool IcUstUygun(WardrobeItem top)
+        {
+            if (context.MinTemp is not double minT) return true; // sıcaklık yok → hepsi uygun
+            double maxT = context.MaxTemp ?? minT;
+            double fark = maxT - minT;
+            bool kalinUst = top.Category is Category.Sweater or Category.Hoodie;
+            // Değişken gün (fark≥8) veya öğle sıcaksa (max≥24) → kalın üstü ele
+            // (ceket zaten katman; altı ince olsun ki öğle ceket çıkınca terletmesin)
+            if ((fark >= 8 || maxT >= 24) && kalinUst) return false;
+            return true;
+        }
+
+        // İç üst (ceket hariç) — sıcaklığa uygun olanlar
+        var tops = available
+            .Where(i => i.Kind == ItemKind.Clothing && IsInnerTop(i.Category) && IcUstUygun(i))
+            .ToList();
+
+        // Güvenlik: filtre sonrası hiç iç üst kalmadıysa, filtreyi gevşet (kombinsiz kalmasın)
+        if (tops.Count == 0)
+        {
+            tops = available
+                .Where(i => i.Kind == ItemKind.Clothing && IsInnerTop(i.Category))
+                .ToList();
+        }
         var bottoms = available.Where(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category)).ToList();
         var dresses = available.Where(i => i.Category == Category.Dress).ToList();
         var shoes = available.Where(i => i.Kind == ItemKind.Shoes).ToList();
@@ -432,9 +456,33 @@ public class RuleBasedRecommender : IOutfitRecommender
     {
         if (outerwear.Count == 0) return null;
 
-        // Sadece kış veya ara mevsimde ceket öner
-        if (ctx.Season != Season.Winter && ctx.Season != Season.MidSeason)
-            return null;
+        // ── Ceket gerekli mi? — Sıcaklık öncelikli, yoksa mevsim ──
+        bool ceketGerekli;
+        if (ctx.MinTemp is double minT)
+        {
+            double maxT = ctx.MaxTemp ?? minT;
+            double fark = maxT - minT;
+
+            // Kural (araştırma bazlı):
+            // - En düşük 18°+ ve gün dengeli (fark<6) → ceket YOK
+            // - En düşük < 15° → ceket gerekli (serin)
+            // - Fark >= 8° (değişken gün) → çıkarılabilir katman için ceket öner
+            if (minT >= 18 && fark < 6)
+                ceketGerekli = false;              // ılık ve sabit → ceket yok
+            else if (minT < 15)
+                ceketGerekli = true;               // serin → ceket
+            else if (fark >= 8)
+                ceketGerekli = true;               // değişken → çıkarılabilir katman
+            else
+                ceketGerekli = false;              // 15-18 arası dengeli → ceket yok
+        }
+        else
+        {
+            // Sıcaklık yok → mevsimle karar ver (fallback)
+            ceketGerekli = ctx.Season == Season.Winter || ctx.Season == Season.MidSeason;
+        }
+
+        if (!ceketGerekli) return null;
 
         // En uyumlu ceketi seç (renk + formalite)
         WardrobeItem? best = null;

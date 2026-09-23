@@ -137,13 +137,14 @@ app.MapPatch("/wardrobe/items/{id}/correct", async (
 
 app.MapGet("/outfits/{userId}", async (
     string userId, Season season, Formality formality,
+        double? minTemp, double? maxTemp,   // ← YENİ
     ColorName? preferredColor, Style? preferredStyle,
     int? offset,
     IWardrobeItemRepository repo, IOutfitRecommender recommender,
     CancellationToken ct) =>
 {
     var wardrobe = await repo.GetByUserAsync(userId, ct);
-    var context = new OutfitContext(season, formality, preferredColor, preferredStyle);
+    var context = new OutfitContext(season, formality, preferredColor, preferredStyle, minTemp, maxTemp);
     var result = recommender.Recommend(wardrobe, context,5, offset ?? 0);   // ← OutfitResult
 
     // Eksik varsa: kombin yok, mesaj dön
@@ -206,11 +207,12 @@ app.MapPost("/outfits/evaluate", async (
 
 app.MapGet("/outfits/{userId}/daily", async (
     string userId, Season season, Formality formality,
+        double? minTemp, double? maxTemp,   // ← YENİ
     IWardrobeItemRepository repo, IOutfitRecommender recommender,
     CancellationToken ct) =>
 {
     var wardrobe = await repo.GetByUserAsync(userId, ct);
-    var context = new OutfitContext(season, formality, null, null);
+    var context = new OutfitContext(season, formality, null, null, minTemp, maxTemp);
     var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
     var outfit = recommender.RecommendDaily(wardrobe, context, today);
