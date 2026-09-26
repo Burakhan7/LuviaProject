@@ -508,15 +508,13 @@ def analyze_part_image(cutout, category_from_seg, kind):
             low_fields.append(field)
 
         # ── Kategori bazlı Season override ──
-        # Sort -> yaz, Bot -> kis, diger alt/ayakkabi -> tum sezon (AllSeason)
         cat = result.get("category")
-        if cat == "Shorts":
-            result["season"] = "Summer"
+        if cat in ("Shorts", "Sandals"):
+            result["season"] = "Summer"        # sort + terlik -> yaz
         elif cat == "Boots":
-            result["season"] = "Winter"
-        elif cat in ("Jeans", "Pants", "Skirt", "Sweatpants", "Sneakers", "Heels", "Sandals"):
-            result["season"] = "AllSeason"
-        # ust giyim / ceket / elbise -> CV'nin belirledigi season kalir
+            result["season"] = "Winter"        # bot -> kis
+        elif cat in ("Jeans", "Pants", "Skirt", "Sweatpants", "Sneakers", "Heels"):
+            result["season"] = "AllSeason"     # diger alt + ayakkabi -> tum sezon
 
         result["lowConfidenceFields"] = low_fields
         result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
