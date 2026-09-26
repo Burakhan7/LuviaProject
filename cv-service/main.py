@@ -507,9 +507,20 @@ def analyze_part_image(cutout, category_from_seg, kind):
         if low:
             low_fields.append(field)
 
-    result["lowConfidenceFields"] = low_fields
-    result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
-    return result, cutout   # ← cutout'u da döndür
+        # ── Kategori bazlı Season override ──
+        # Sort -> yaz, Bot -> kis, diger alt/ayakkabi -> tum sezon (AllSeason)
+        cat = result.get("category")
+        if cat == "Shorts":
+            result["season"] = "Summer"
+        elif cat == "Boots":
+            result["season"] = "Winter"
+        elif cat in ("Jeans", "Pants", "Skirt", "Sweatpants", "Sneakers", "Heels", "Sandals"):
+            result["season"] = "AllSeason"
+        # ust giyim / ceket / elbise -> CV'nin belirledigi season kalir
+
+        result["lowConfidenceFields"] = low_fields
+        result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
+        return result, cutout   # ← cutout'u da döndür
 
 def dominant_color_masked(img: Image.Image):
     import colorsys

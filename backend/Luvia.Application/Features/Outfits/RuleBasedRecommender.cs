@@ -313,10 +313,14 @@ public class RuleBasedRecommender : IOutfitRecommender
 
     private static bool SeasonCompatible(List<WardrobeItem> items, Season target)
     {
+        // Kullanıcı "tüm sezon" seçtiyse → hiçbir şeyi eleme
+        if (target == Season.AllSeason) return true;
+
         foreach (var item in items)
         {
             if (item.Season is null) continue;
             if (item.Season == Season.MidSeason) continue;
+            if (item.Season == Season.AllSeason) continue; // tüm-sezon item her mevsim geçer
             if (item.Season != target) return false;
         }
         return true;
@@ -338,6 +342,14 @@ public class RuleBasedRecommender : IOutfitRecommender
     List<WardrobeItem> items, OutfitContext ctx)
     {
         var reasons = new List<string>();
+
+        // ── SÜRPRİZ MOD: renk/tarz skorlaması yok, rastgele (mevsim kısıtı zaten geçilmiş) ──
+        if (ctx.PreferredStyle == Style.Surprise)
+        {
+            reasons.Add("Sürpriz kombin — alışılmadık bir eşleşme dene!");
+            var rnd = new Random(items.Sum(i => i.Id.GetHashCode()));
+            return (rnd.NextDouble(), reasons);  // rastgele skor → rastgele sıralama
+        }
 
         double color = ScoreColor(items, reasons);
         double formality = ScoreFormality(items, reasons);
@@ -374,6 +386,14 @@ public class RuleBasedRecommender : IOutfitRecommender
             double colorPenalty = color / 0.5;
             total *= colorPenalty;
             reasons.Add("Renk uyumsuzluğu genel puanı belirgin düşürdü");
+        }
+
+        // ── Eşofman: Sporty değilse nadiren önerilsin ──
+        bool hasSweatpants = items.Any(i => i.Category == Category.Sweatpants);
+        if (hasSweatpants && ctx.PreferredStyle != Style.Sporty)
+        {
+            total *= 0.55;  // skoru düşür → sıralamada geriye gider, nadiren gelir
+            reasons.Add("Eşofman — rahat ama daha çok sportif kombinlere uygun");
         }
 
         // Skoru 0-1 aralığında tut
