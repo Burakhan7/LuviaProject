@@ -507,18 +507,18 @@ def analyze_part_image(cutout, category_from_seg, kind):
         if low:
             low_fields.append(field)
 
-        # ── Kategori bazlı Season override ──
-        cat = result.get("category")
-        if cat in ("Shorts", "Sandals"):
-            result["season"] = "Summer"        # sort + terlik -> yaz
-        elif cat == "Boots":
-            result["season"] = "Winter"        # bot -> kis
-        elif cat in ("Jeans", "Pants", "Skirt", "Sweatpants", "Sneakers", "Heels"):
-            result["season"] = "AllSeason"     # diger alt + ayakkabi -> tum sezon
+    # ── Kategori bazlı Season override ──
+    cat = result.get("category")
+    if cat in ("Shorts", "Sandals"):
+        result["season"] = "Summer"        # sort + terlik -> yaz
+    elif cat == "Boots":
+        result["season"] = "Winter"        # bot -> kis
+    elif cat in ("Jeans", "Pants", "Skirt", "Sweatpants", "Sneakers", "Heels"):
+        result["season"] = "AllSeason"     # diger alt + ayakkabi -> tum sezon
 
-        result["lowConfidenceFields"] = low_fields
-        result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
-        return result, cutout   # ← cutout'u da döndür
+    result["lowConfidenceFields"] = low_fields
+    result["processedImageUrl"] = None  # yükleme sonra paralel yapılacak
+    return result, cutout   # ← cutout'u da döndür
 
 def dominant_color_masked(img: Image.Image):
     import colorsys
