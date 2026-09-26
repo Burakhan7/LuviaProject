@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'theme.dart';
 import 'screens/home_screen.dart';
@@ -12,6 +13,8 @@ import 'screens/auth_screen.dart';
 import 'screens/studio_screen.dart';
 import 'services/api_service.dart';
 import 'models/wardrobe_item.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +22,52 @@ void main() async {
   runApp(const LuviaApp());
 }
 
-class LuviaApp extends StatelessWidget {
+class LuviaApp extends StatefulWidget {
   const LuviaApp({super.key});
+
+  // Her yerden dil değiştirmek için
+  static void setLocale(BuildContext context, Locale locale) {
+    context.findAncestorStateOfType<_LuviaAppState>()?.changeLanguage(locale);
+  }
+
+  @override
+  State<LuviaApp> createState() => _LuviaAppState();
+}
+
+class _LuviaAppState extends State<LuviaApp> {
+  Locale? _locale; // null = cihaz dili (otomatik)
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocale();
+  }
+
+  Future<void> _loadLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString('app_locale');
+    if (code != null && mounted) {
+      setState(() => _locale = Locale(code));
+    }
+  }
+
+  Future<void> changeLanguage(Locale locale) async {
+    setState(() => _locale = locale);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_locale', locale.languageCode);
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      locale: _locale, // ← dinamik dil (null=cihaz dili)
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('tr'), Locale('en')],
       title: 'Luvia',
       debugShowCheckedModeBanner: false,
       theme: LuviaTheme.theme,

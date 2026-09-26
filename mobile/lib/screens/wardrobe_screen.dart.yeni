@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile/l10n/app_localizations.dart';
 import '../models/wardrobe_item.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
@@ -147,8 +146,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
-              child: Text(
-                AppLocalizations.of(context)!.birKiyafeteCift,
+              child: Text(AppLocalizations.of(context)!.birKiyafeteCift,
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
@@ -160,8 +158,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
-              child: Text(
-                AppLocalizations.of(context)!.silmekIcinKiyafete,
+              child: Text(AppLocalizations.of(context)!.silmekIcinKiyafete,
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
@@ -482,8 +479,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                     padding: const EdgeInsets.only(top: 8, bottom: 4),
                     child: Row(
                       children: [
-                        Text(
-                          AppLocalizations.of(context)!.duzenle,
+                        Text(AppLocalizations.of(context)!.duzenle,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -614,8 +610,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            AppLocalizations.of(context)!.stilKumasKalip,
+                          child: Text(AppLocalizations.of(context)!.stilKumasKalip,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.black.withOpacity(0.6),
@@ -643,11 +638,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                           _refresh();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  AppLocalizations.of(context)!.guncellendi,
-                                ),
-                              ),
+                              const SnackBar(content: Text(AppLocalizations.of(context)!.guncellendi)),
                             );
                           }
                         } catch (e) {
@@ -813,8 +804,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    AppLocalizations.of(context)!.gardirobum,
+                  Text(AppLocalizations.of(context)!.gardirobum,
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
@@ -903,16 +893,14 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            Text(
-                              AppLocalizations.of(context)!.gardirobunBos,
+                            Text(AppLocalizations.of(context)!.gardirobunBos,
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              AppLocalizations.of(context)!.ilkKiyafetiniEkle,
+                            Text(AppLocalizations.of(context)!.ilkKiyafetiniEkle,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.black.withValues(alpha: 0.55),
@@ -923,9 +911,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                             FilledButton.icon(
                               onPressed: _showAddSheet,
                               icon: const Icon(Icons.add_a_photo),
-                              label: Text(
-                                AppLocalizations.of(context)!.fotografEkle,
-                              ),
+                              label: Text(AppLocalizations.of(context)!.fotografEkle),
                               style: FilledButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 28,
@@ -1063,8 +1049,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                                     color: Colors.orange,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text(
-                                    AppLocalizations.of(context)!.musaitDegil,
+                                  child: Text(AppLocalizations.of(context)!.musaitDegil,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 8,

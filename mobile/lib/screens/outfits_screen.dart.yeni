@@ -2,7 +2,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:mobile/l10n/app_localizations.dart';
 import '../models/outfit.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -90,7 +89,9 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
         _offset = 10;
         // İstersen kullanıcıya "hepsi bu kadar" mesajı göster
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.buBaglamIcin)),
+          const SnackBar(
+            content: Text(AppLocalizations.of(context)!.buBaglamIcin),
+          ),
         );
         return;
       }
@@ -279,8 +280,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 90),
         children: [
-          Text(
-            AppLocalizations.of(context)!.kombinOner,
+          Text(AppLocalizations.of(context)!.kombinOner,
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
@@ -478,8 +478,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            AppLocalizations.of(context)!.kombininHazirOlsun,
+          Text(AppLocalizations.of(context)!.kombininHazirOlsun,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -587,9 +586,9 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
 
         final outfits = result?.outfits ?? [];
         if (outfits.isEmpty) {
-          return Center(
+          return const Center(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               child: Text(AppLocalizations.of(context)!.buBaglamaUygun),
             ),
           );

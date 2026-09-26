@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile/l10n/app_localizations.dart';
 import '../models/wardrobe_item.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -181,7 +180,7 @@ class _StudioScreenState extends State<StudioScreen> {
 
     if (ids.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(AppLocalizations.of(context)!.degerlendirmeIcinEn),
         ),
       );
@@ -315,16 +314,12 @@ class _StudioScreenState extends State<StudioScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  AppLocalizations.of(context)!.kombinStudyosu,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Text(AppLocalizations.of(context)!.kombinStudyosu,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -423,8 +418,7 @@ class _StudioScreenState extends State<StudioScreen> {
           Expanded(
             child: items.isEmpty
                 ? Center(
-                    child: Text(
-                      AppLocalizations.of(context)!.buKategorideParca,
+                    child: Text(AppLocalizations.of(context)!.buKategorideParca,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.black.withValues(alpha: 0.4),

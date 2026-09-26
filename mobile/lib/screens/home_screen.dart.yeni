@@ -10,7 +10,6 @@ import '../services/auth_service.dart';
 import '../widgets/outfit_card.dart' show OutfitCard, OutfitCardGrid;
 import 'auth_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(int)? onNavigateToTab;
@@ -163,8 +162,7 @@ class HomeScreenState extends State<HomeScreen> {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text(
-              AppLocalizations.of(context)!.kaydolVeyaGiris,
+            child: Text(AppLocalizations.of(context)!.kaydolVeyaGiris,
               style: TextStyle(fontSize: 13),
             ),
           ),
@@ -258,8 +256,7 @@ class HomeScreenState extends State<HomeScreen> {
               _guestBanner(items.length),
               _forecastCard(), // ← YENİ: bugün hava böyle ilerleyecek
               const SizedBox(height: 20),
-              Text(
-                AppLocalizations.of(context)!.bugunNeGiysek,
+              Text(AppLocalizations.of(context)!.bugunNeGiysek,
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
@@ -277,8 +274,7 @@ class HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 28),
 
               // Son eklenenler (en altta)
-              Text(
-                AppLocalizations.of(context)!.sonEklenenler,
+              Text(AppLocalizations.of(context)!.sonEklenenler,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 14),
@@ -393,8 +389,7 @@ class HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  AppLocalizations.of(context)!.havaDurumunaGore,
+                Text(AppLocalizations.of(context)!.havaDurumunaGore,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 2),
@@ -457,8 +452,7 @@ class HomeScreenState extends State<HomeScreen> {
             children: [
               const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
               const SizedBox(width: 8),
-              Text(
-                AppLocalizations.of(context)!.bugununKombini,
+              Text(AppLocalizations.of(context)!.bugununKombini,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -490,8 +484,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.of(context)!.bugunIcinGardirobuna,
+        Text(AppLocalizations.of(context)!.bugunIcinGardirobuna,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.85)),
         ),
         const SizedBox(height: 16),
@@ -528,8 +521,7 @@ class HomeScreenState extends State<HomeScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                AppLocalizations.of(context)!.kombinOlusturmakIcin,
+              Text(AppLocalizations.of(context)!.kombinOlusturmakIcin,
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
               ),
               const SizedBox(height: 12),
@@ -543,8 +535,7 @@ class HomeScreenState extends State<HomeScreen> {
           children: [
             OutfitCardGrid(items: outfit.items, itemSize: 88),
             const SizedBox(height: 14),
-            Text(
-              AppLocalizations.of(context)!.bugununKombiniHazir,
+            Text(AppLocalizations.of(context)!.bugununKombiniHazir,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.95),
                 fontWeight: FontWeight.w600,
@@ -588,20 +579,15 @@ class HomeScreenState extends State<HomeScreen> {
               child: const Icon(Icons.add_a_photo, color: LuviaTheme.primary),
             ),
             const SizedBox(width: 14),
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    AppLocalizations.of(context)!.yeniBirSey,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Text(AppLocalizations.of(context)!.yeniBirSey,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
-                  Text(
-                    AppLocalizations.of(context)!.dolabinaEkleKombinlerde,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  Text(AppLocalizations.of(context)!.dolabinaEkleKombinlerde,
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                 ],
               ),
@@ -708,13 +694,12 @@ class HomeScreenState extends State<HomeScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Column(
+        child: const Column(
           children: [
-            const Icon(Icons.checkroom, size: 36, color: Colors.black26),
-            const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(context)!.henuzKiyafetEklemedin,
-              style: const TextStyle(color: Colors.black54),
+            Icon(Icons.checkroom, size: 36, color: Colors.black26),
+            SizedBox(height: 8),
+            Text(AppLocalizations.of(context)!.henuzKiyafetEklemedin,
+              style: TextStyle(color: Colors.black54),
             ),
           ],
         ),

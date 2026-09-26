@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/main.dart';
 import '../models/wardrobe_item.dart';
 import '../services/api_service.dart';
@@ -44,10 +43,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              AppLocalizations.of(context)!.cikisYap,
-              style: TextStyle(color: Colors.red),
-            ),
+            child: Text(AppLocalizations.of(context)!.cikisYap, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -63,7 +59,9 @@ class ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.hesabimiSil),
-        content: Text(AppLocalizations.of(context)!.hesabinVeTum),
+        content: Text(AppLocalizations.of(context)!.hesabinVeTum
+          'Bu işlem geri alınamaz. Devam etmek istiyor musun?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -71,8 +69,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              AppLocalizations.of(context)!.hesabimiSil,
+            child: Text(AppLocalizations.of(context)!.hesabimiSil,
               style: TextStyle(color: Colors.red),
             ),
           ),
@@ -103,9 +100,10 @@ class ProfileScreenState extends State<ProfileScreen> {
       if (error == 'requires-recent-login') {
         // Güvenlik: yeniden giriş gerekli
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.guvenlikIcinCikis),
-            duration: const Duration(seconds: 4),
+          const SnackBar(
+            content: Text(AppLocalizations.of(context)!.guvenlikIcinCikis,
+            ),
+            duration: Duration(seconds: 4),
           ),
         );
         return;
@@ -209,8 +207,7 @@ class ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
 
               // Gardırop istatistikleri
-              Text(
-                AppLocalizations.of(context)!.gardirobun,
+              Text(AppLocalizations.of(context)!.gardirobun,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -219,8 +216,7 @@ class ProfileScreenState extends State<ProfileScreen> {
 
               // Renk paleti
               if (items.isNotEmpty) ...[
-                Text(
-                  AppLocalizations.of(context)!.renkPaletin,
+                Text(AppLocalizations.of(context)!.renkPaletin,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
@@ -240,21 +236,13 @@ class ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     const Icon(Icons.language, color: LuviaTheme.primary),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(AppLocalizations.of(context)!.dilLanguage),
-                    ),
+                    const Expanded(child: Text(AppLocalizations.of(context)!.dilLanguage)),
                     DropdownButton<String>(
                       value: Localizations.localeOf(context).languageCode,
                       underline: const SizedBox(),
-                      items: [
-                        DropdownMenuItem(
-                          value: 'tr',
-                          child: Text(AppLocalizations.of(context)!.turkce),
-                        ),
-                        const DropdownMenuItem(
-                          value: 'en',
-                          child: Text('English'),
-                        ),
+                      items: const [
+                        DropdownMenuItem(value: 'tr', child: Text(AppLocalizations.of(context)!.turkce)),
+                        DropdownMenuItem(value: 'en', child: Text('English')),
                       ],
                       onChanged: (code) {
                         if (code != null) {
@@ -272,8 +260,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _signOut,
                   icon: const Icon(Icons.logout, color: Colors.red),
-                  label: Text(
-                    AppLocalizations.of(context)!.cikisYap2,
+                  label: Text(AppLocalizations.of(context)!.cikisYap2,
                     style: TextStyle(color: Colors.red),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -295,17 +282,15 @@ class ProfileScreenState extends State<ProfileScreen> {
                     color: Colors.red,
                     size: 20,
                   ),
-                  label: Text(
-                    AppLocalizations.of(context)!.hesabimiSil,
+                  label: Text(AppLocalizations.of(context)!.hesabimiSil,
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  AppLocalizations.of(context)!.luviaV,
-                  style: const TextStyle(fontSize: 12, color: Colors.black38),
+              const Center(
+                child: Text(AppLocalizations.of(context)!.luviaV,
+                  style: TextStyle(fontSize: 12, color: Colors.black38),
                 ),
               ),
             ],
