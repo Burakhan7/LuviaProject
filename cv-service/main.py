@@ -437,6 +437,15 @@ def analyze(req: AnalyzeRequest):
         if low:
             low_fields.append(field)
 
+    # ── Kategori bazlı Season override ──
+    cat = result.get("category")
+    if cat in ("Shorts", "Sandals"):
+        result["season"] = "Summer"
+    elif cat == "Boots":
+        result["season"] = "Winter"
+    elif cat in ("Jeans", "Pants", "Skirt", "Sweatpants", "Sneakers", "Heels"):
+        result["season"] = "AllSeason"
+
     result["lowConfidenceFields"] = low_fields
 
     # 4) Storage'a yükle
