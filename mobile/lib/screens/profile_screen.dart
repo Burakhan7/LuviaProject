@@ -141,9 +141,12 @@ class ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
               // Başlık
-              const Text(
-                'Profil',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              Text(
+                AppLocalizations.of(context)!.navProfile,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -194,7 +197,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${items.length} parça · Luvia üyesi',
+                            AppLocalizations.of(
+                              context,
+                            )!.memberItemCount(items.length),
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.85),
                               fontSize: 13,
@@ -351,12 +356,12 @@ class ProfileScreenState extends State<ProfileScreen> {
     final taki = items.where((i) => i.kind == 'Jewelry').length;
 
     final stats = [
-      ('Üst', ust, Icons.checkroom),
-      ('Alt', alt, Icons.dry_cleaning),
-      ('Elbise', elbise, Icons.woman),
-      ('Ayakkabı', ayakkabi, Icons.ice_skating),
-      ('Aksesuar', aksesuar, Icons.watch),
-      ('Takı', taki, Icons.diamond),
+      (AppLocalizations.of(context)!.upper, ust, Icons.checkroom),
+      (AppLocalizations.of(context)!.lower, alt, Icons.dry_cleaning),
+      (AppLocalizations.of(context)!.filterDress, elbise, Icons.woman),
+      (AppLocalizations.of(context)!.shoes, ayakkabi, Icons.ice_skating),
+      (AppLocalizations.of(context)!.filterAccessory, aksesuar, Icons.watch),
+      (AppLocalizations.of(context)!.filterJewelry, taki, Icons.diamond),
     ];
 
     return GridView.count(
@@ -482,8 +487,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     IconData icon;
 
     if (items.isEmpty) {
-      advice =
-          'Gardırobun boş. Birkaç kıyafet ekle, kombin önerileri başlasın!';
+      advice = AppLocalizations.of(context)!.adviceEmpty;
       icon = Icons.add_circle_outline;
     } else {
       final ust = items
@@ -518,22 +522,19 @@ class ProfileScreenState extends State<ProfileScreen> {
       final ayakkabi = items.where((i) => i.kind == 'Shoes').length;
 
       if (ust == 0) {
-        advice =
-            'Hiç üst giyimin yok. Birkaç tişört ya da gömlek ekle, kombinler oluşsun.';
+        advice = AppLocalizations.of(context)!.adviceNoUpper;
         icon = Icons.checkroom;
       } else if (alt == 0) {
-        advice =
-            'Alt giyimin yok. Pantolon ya da etek ekleyince kombin çeşitliliğin artar.';
+        advice = AppLocalizations.of(context)!.adviceNoLower;
         icon = Icons.dry_cleaning;
       } else if (ayakkabi == 0) {
-        advice = 'Ayakkabın yok. Bir çift ekle, kombinlerin tamamlansın.';
+        advice = AppLocalizations.of(context)!.adviceNoShoes;
         icon = Icons.ice_skating;
       } else if (ust < alt * 2) {
-        advice = 'Daha fazla üst giyim eklersen kombin seçeneklerin katlanır.';
+        advice = AppLocalizations.of(context)!.adviceMoreUpper;
         icon = Icons.auto_awesome;
       } else {
-        advice =
-            'Gardırobun dengeli görünüyor! Farklı renkler ekleyerek çeşitliliği artırabilirsin.';
+        advice = AppLocalizations.of(context)!.adviceBalanced;
         icon = Icons.check_circle_outline;
       }
     }

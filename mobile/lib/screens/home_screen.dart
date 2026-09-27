@@ -108,11 +108,12 @@ class HomeScreenState extends State<HomeScreen> {
     _loadDailyOutfit();
   }
 
-  String get _greeting {
+  String _greetingText(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final h = DateTime.now().hour;
-    if (6 < h && h < 12) return 'Günaydın';
-    if (h > 12 && h < 18) return 'İyi günler';
-    return 'İyi akşamlar';
+    if (6 < h && h < 12) return t.greetingMorning;
+    if (h > 12 && h < 18) return t.greetingDay;
+    return t.greetingEvening;
   }
 
   Widget _guestBanner(int itemCount) {
@@ -123,16 +124,13 @@ class HomeScreenState extends State<HomeScreen> {
     String msg;
     Color bgColor;
     if (itemCount == 0) {
-      msg =
-          'Misafir modundasın. Kaydol veya Giriş yap, kıyafetlerini kalıcı olarak sakla.';
+      msg = AppLocalizations.of(context)!.guestMode;
       bgColor = LuviaTheme.primary.withValues(alpha: 0.08);
     } else if (itemCount < 10) {
-      msg =
-          '$itemCount kıyafetin var. Kaydolmazsan kaybolabilir — hesabını güvene al.';
+      msg = AppLocalizations.of(context)!.guestItemsWarn(itemCount);
       bgColor = Colors.orange.withValues(alpha: 0.12);
     } else {
-      msg =
-          '$itemCount kıyafet biriktirdin! Bunları kaybetmemek için hemen kaydol.';
+      msg = AppLocalizations.of(context)!.guestItemsCollected(itemCount);
       bgColor = Colors.red.withValues(alpha: 0.10);
     }
 
@@ -219,7 +217,7 @@ class HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Text(
-                    _greeting,
+                    _greetingText(context),
                     style: const TextStyle(fontSize: 15, color: Colors.black54),
                   ),
                   if (_currentWeather != null) ...[
@@ -326,7 +324,9 @@ class HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                f.city != null ? 'Bugün · ${f.city}' : 'Bugün',
+                f.city != null
+                    ? AppLocalizations.of(context)!.todayWithCity(f.city!)
+                    : AppLocalizations.of(context)!.todayShort,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -657,13 +657,13 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          _summaryStat('$total', 'Toplam'),
+          _summaryStat('$total', AppLocalizations.of(context)!.total),
           _summaryDivider(),
-          _summaryStat('$ust', 'Üst'),
+          _summaryStat('$ust', AppLocalizations.of(context)!.upper),
           _summaryDivider(),
-          _summaryStat('$alt', 'Alt'),
+          _summaryStat('$alt', AppLocalizations.of(context)!.lower),
           _summaryDivider(),
-          _summaryStat('$ayakkabi', 'Ayakkabı'),
+          _summaryStat('$ayakkabi', AppLocalizations.of(context)!.shoes),
         ],
       ),
     );

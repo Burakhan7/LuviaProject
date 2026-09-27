@@ -37,10 +37,11 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
     return '$_season|$_formality|$color|$style';
   }
 
-  String get _buttonLabel {
+  String _buttonLabelText(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     // Aynı bağlamda daha önce öneri alındıysa "Başka Öner"
     final sameContext = _currentContextKey() == _lastContextKey;
-    return sameContext ? 'Başka Öner' : 'Kombin Oluştur';
+    return sameContext ? t.suggestAnother : t.createOutfit;
   }
 
   final _colors = {
@@ -77,6 +78,82 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       _offset = 0;
       _lastContextKey = null; // bağlam sıfırlandı işareti
     });
+  }
+
+  String _trLabel(BuildContext context, String key) {
+    final t = AppLocalizations.of(context)!;
+    switch (key) {
+      // Mevsim
+      case 'Summer':
+        return t.seasonSummer;
+      case 'Winter':
+        return t.seasonWinter;
+      case 'MidSeason':
+        return t.seasonMid;
+      case 'AllSeason':
+        return t.seasonAll;
+      // Ortam (formality)
+      case 'Loungewear':
+        return t.formalityHome;
+      case 'Casual':
+        return t.formalityCasual;
+      case 'SmartCasual':
+        return t.formalitySmart;
+      case 'Business':
+        return t.formalityBusiness;
+      case 'Formal':
+        return t.formalityFormal;
+      // Stil
+      case 'Sporty':
+        return t.styleSporty;
+      case 'Streetwear':
+        return t.styleStreet;
+      case 'Classic':
+        return t.styleClassic;
+      case 'Minimal':
+        return t.styleMinimal;
+      case 'Bohemian':
+        return t.styleBohemian;
+      case 'Surprise':
+        return t.styleSurprise;
+      // Renk
+      case 'Black':
+        return t.colorBlack;
+      case 'White':
+        return t.colorWhite;
+      case 'Gray':
+        return t.colorGray;
+      case 'Red':
+        return t.colorRed;
+      case 'Burgundy':
+        return t.colorBurgundy;
+      case 'Orange':
+        return t.colorOrange;
+      case 'Yellow':
+        return t.colorYellow;
+      case 'Green':
+        return t.colorGreen;
+      case 'Blue':
+        return t.colorBlue;
+      case 'Navy':
+        return t.colorNavy;
+      case 'Purple':
+        return t.colorPurple;
+      case 'Pink':
+        return t.colorPink;
+      case 'Brown':
+        return t.colorBrown;
+      case 'Beige':
+        return t.colorBeige;
+      case 'Cream':
+        return t.colorCream;
+      case 'Khaki':
+        return t.colorKhaki;
+      case 'Turquoise':
+        return t.colorTurquoise;
+      default:
+        return key;
+    }
   }
 
   void _generate() {
@@ -169,7 +246,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Tamam'),
+            child: Text(AppLocalizations.of(context)!.ok),
           ),
           if (showSettings)
             FilledButton(
@@ -259,7 +336,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       children: options.entries.map((e) {
         final sel = e.key == selected;
         return ChoiceChip(
-          label: Text(e.value),
+          label: Text(_trLabel(context, e.key)),
           selected: sel,
           onSelected: (_) => onSelect(e.key),
           selectedColor: LuviaTheme.primary,
@@ -304,7 +381,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                   child: Text(
                     _useWeather && _weatherResult != null
                         ? 'Hava: ${_weatherResult!.temp.round()}° · ${_seasons[_season]}'
-                        : 'Hava durumunu kullan',
+                        : AppLocalizations.of(context)!.useWeather,
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -337,9 +414,9 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    const Text(
-                      'Mevsim',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    Text(
+                      AppLocalizations.of(context)!.season,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     _wheelPicker(
                       controller: _seasonController,
@@ -358,9 +435,9 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    const Text(
-                      'Ortam',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                    Text(
+                      AppLocalizations.of(context)!.environment,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     _wheelPicker(
                       controller: _formalityController,
@@ -380,7 +457,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           // Renk toggle (isteğe bağlı)
           _prefToggle(
             icon: Icons.palette_outlined,
-            label: 'Renk tercihi',
+            label: AppLocalizations.of(context)!.colorPreference,
             enabled: _useColor,
             onToggle: (v) => setState(() {
               _useColor = v;
@@ -408,7 +485,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           // Stil toggle (isteğe bağlı)
           _prefToggle(
             icon: Icons.style_outlined,
-            label: 'Stil tercihi',
+            label: AppLocalizations.of(context)!.stylePreference,
             enabled: _useStyle,
             onToggle: (v) => setState(() {
               _useStyle = v;
@@ -434,7 +511,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           FilledButton.icon(
             onPressed: _generate,
             icon: const Icon(Icons.auto_awesome),
-            label: Text(_buttonLabel),
+            label: Text(_buttonLabelText(context)),
             style: FilledButton.styleFrom(
               backgroundColor: LuviaTheme.primary,
               minimumSize: const Size.fromHeight(52),
@@ -484,7 +561,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Mevsim ve ortamı seç,\ngardırobuna göre sana özel kombin oluşturalım.',
+            AppLocalizations.of(context)!.selectSeasonEnv,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -499,9 +576,18 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              _hintChip(Icons.palette_outlined, 'Renk uyumu'),
-              _hintChip(Icons.thermostat_outlined, 'Mevsime uygun'),
-              _hintChip(Icons.check_circle_outline, 'Sana özel'),
+              _hintChip(
+                Icons.palette_outlined,
+                AppLocalizations.of(context)!.hintColorHarmony,
+              ),
+              _hintChip(
+                Icons.thermostat_outlined,
+                AppLocalizations.of(context)!.hintSeasonAppropriate,
+              ),
+              _hintChip(
+                Icons.check_circle_outline,
+                AppLocalizations.of(context)!.hintPersonalized,
+              ),
             ],
           ),
         ],
@@ -545,7 +631,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
         final sel = e.key == selected;
         final locked = onSel == null; // kilitli mi?
         return ChoiceChip(
-          label: Text(e.value),
+          label: Text(_trLabel(context, e.key)),
           selected: sel,
           onSelected: locked
               ? null
@@ -660,7 +746,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
                             : LuviaTheme.primary)
                       : Colors.black38,
                 ),
-                child: Text(map[keys[i]]!),
+                child: Text(_trLabel(context, keys[i])),
               ),
             );
           },

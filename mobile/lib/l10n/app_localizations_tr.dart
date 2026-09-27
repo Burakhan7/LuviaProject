@@ -22,12 +22,12 @@ class AppLocalizationsTr extends AppLocalizations {
       'Misafir modundasın. Kaydol veya Giriş yap, kıyafetlerini kalıcı olarak sakla.';
 
   @override
-  String guestItemsWarn(Object count) {
+  String guestItemsWarn(int count) {
     return '$count kıyafetin var. Kaydolmazsan kaybolabilir — hesabını güvene al.';
   }
 
   @override
-  String guestItemsCollected(Object count) {
+  String guestItemsCollected(int count) {
     return '$count kıyafet biriktirdin! Bunları kaybetmemek için hemen kaydol.';
   }
 
@@ -41,7 +41,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get recentlyAdded => 'Son Eklenenler';
 
   @override
-  String todayWithCity(Object city) {
+  String todayWithCity(String city) {
     return 'Bugün · $city';
   }
 
@@ -248,4 +248,277 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get luviaV => 'Luvia v1.0';
+
+  @override
+  String get todayShort => 'Bugün';
+
+  @override
+  String get addSingleTitle => 'Parça Ekle';
+
+  @override
+  String get addSingleSubtitle => 'Tek kıyafetin fotoğrafı';
+
+  @override
+  String get captureOutfitTitle => 'Kombin Yakala';
+
+  @override
+  String get captureOutfitSubtitle => 'Boydan fotoğraf';
+
+  @override
+  String get gallery => 'Galeri';
+
+  @override
+  String get cameraTutorial =>
+      'Buradan kıyafet ekle 👕\nAynı anda birden fazla fotoğraf: boydan 3, tek parça 5 📸';
+
+  @override
+  String get capture => 'Çek';
+
+  @override
+  String get delete => 'Sil';
+
+  @override
+  String tooManyPhotosContent(int count) {
+    return 'En fazla $count fotoğraf seçebilirsin. Lütfen tekrar seç.';
+  }
+
+  @override
+  String get useWeather => 'Hava durumunu kullan';
+
+  @override
+  String get season => 'Mevsim';
+
+  @override
+  String get environment => 'Ortam';
+
+  @override
+  String get colorPreference => 'Renk tercihi';
+
+  @override
+  String get stylePreference => 'Stil tercihi';
+
+  @override
+  String get selectSeasonEnv =>
+      'Mevsim ve ortamı seç,\ngardırobuna göre sana özel kombin oluşturalım.';
+
+  @override
+  String get hintColorHarmony => 'Renk uyumu';
+
+  @override
+  String get hintSeasonAppropriate => 'Mevsime uygun';
+
+  @override
+  String get hintPersonalized => 'Sana özel';
+
+  @override
+  String get seasonSummer => 'Yaz';
+
+  @override
+  String get seasonWinter => 'Kış';
+
+  @override
+  String get seasonMid => 'Ara Mevsim';
+
+  @override
+  String get seasonAll => 'Tüm Sezon';
+
+  @override
+  String get formalityHome => 'Ev';
+
+  @override
+  String get formalityCasual => 'Günlük';
+
+  @override
+  String get formalitySmart => 'Smart';
+
+  @override
+  String get formalityBusiness => 'İş';
+
+  @override
+  String get formalityFormal => 'Resmi';
+
+  @override
+  String get styleSporty => 'Sportif';
+
+  @override
+  String get styleStreet => 'Sokak';
+
+  @override
+  String get styleClassic => 'Klasik';
+
+  @override
+  String get styleMinimal => 'Minimal';
+
+  @override
+  String get styleBohemian => 'Bohem';
+
+  @override
+  String get styleSurprise => 'Sürpriz 🎲';
+
+  @override
+  String get colorBlack => 'Siyah';
+
+  @override
+  String get colorWhite => 'Beyaz';
+
+  @override
+  String get colorGray => 'Gri';
+
+  @override
+  String get colorRed => 'Kırmızı';
+
+  @override
+  String get colorBurgundy => 'Bordo';
+
+  @override
+  String get colorOrange => 'Turuncu';
+
+  @override
+  String get colorYellow => 'Sarı';
+
+  @override
+  String get colorGreen => 'Yeşil';
+
+  @override
+  String get colorBlue => 'Mavi';
+
+  @override
+  String get colorNavy => 'Lacivert';
+
+  @override
+  String get colorPurple => 'Mor';
+
+  @override
+  String get colorPink => 'Pembe';
+
+  @override
+  String get colorBrown => 'Kahve';
+
+  @override
+  String get colorBeige => 'Bej';
+
+  @override
+  String get colorCream => 'Krem';
+
+  @override
+  String get colorKhaki => 'Haki';
+
+  @override
+  String get colorTurquoise => 'Turkuaz';
+
+  @override
+  String get createOutfit => 'Kombin Oluştur';
+
+  @override
+  String get suggestAnother => 'Başka Öner';
+
+  @override
+  String get ok => 'Tamam';
+
+  @override
+  String noItemInCategory(String slot) {
+    return '$slot kategorisinde parça yok.';
+  }
+
+  @override
+  String get filterAccessory => 'Aksesuar';
+
+  @override
+  String get filterJewelry => 'Takı';
+
+  @override
+  String get adviceNoLower =>
+      'Alt giyimin yok. Pantolon ya da etek ekleyince kombin çeşitliliğin artar.';
+
+  @override
+  String get adviceMoreUpper =>
+      'Daha fazla üst giyim eklersen kombin seçeneklerin katlanır.';
+
+  @override
+  String get filterDress => 'Elbise';
+
+  @override
+  String get adviceNoShoes =>
+      'Ayakkabın yok. Bir çift ekle, kombinlerin tamamlansın.';
+
+  @override
+  String get adviceNoUpper =>
+      'Hiç üst giyimin yok. Birkaç tişört ya da gömlek ekle, kombinler oluşsun.';
+
+  @override
+  String get adviceBalanced =>
+      'Gardırobun dengeli görünüyor! Farklı renkler ekleyerek çeşitliliği artırabilirsin.';
+
+  @override
+  String get adviceEmpty =>
+      'Gardırobun boş. Birkaç kıyafet ekle, kombin önerileri başlasın!';
+
+  @override
+  String get navHome => 'Ana Sayfa';
+
+  @override
+  String get navWardrobe => 'Gardırop';
+
+  @override
+  String get navOutfits => 'Kombin';
+
+  @override
+  String get navStudio => 'Oluştur';
+
+  @override
+  String get navProfile => 'Profil';
+
+  @override
+  String get welcomeBack => 'Tekrar hoş geldin';
+
+  @override
+  String get email => 'E-posta';
+
+  @override
+  String get password => 'Şifre';
+
+  @override
+  String get forgotPassword => 'Şifremi unuttum';
+
+  @override
+  String get login => 'Giriş Yap';
+
+  @override
+  String get register => 'Kayıt Ol';
+
+  @override
+  String get noAccountRegister => 'Hesabın yok mu? Kayıt ol';
+
+  @override
+  String get haveAccountLogin => 'Zaten hesabın var mı? Giriş yap';
+
+  @override
+  String get secureAccountDesc =>
+      'Hesabını güvene al, kıyafetlerin kaybolmasın';
+
+  @override
+  String get createAccount => 'Hesap oluştur';
+
+  @override
+  String get enterEmailFirst =>
+      'Önce e-posta adresini gir, sonra \"Şifremi unuttum\"a bas.';
+
+  @override
+  String get emailPasswordRequired => 'E-posta ve şifre gerekli';
+
+  @override
+  String get addClothesFirst => 'Önce bir kıyafet ekleyelim mi? 👕';
+
+  @override
+  String memberItemCount(int count) {
+    return '$count parça · Luvia üyesi';
+  }
+
+  @override
+  String get filterAll => 'Tümü';
+
+  @override
+  String noItemInFilter(String filter) {
+    return '\"$filter\" kategorisinde parça yok';
+  }
 }

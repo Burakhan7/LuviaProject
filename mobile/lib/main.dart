@@ -147,9 +147,9 @@ class _MainShellState extends State<MainShell> {
     if (_galleryEmpty && i != 1 && _emptyWarnCount < 2) {
       _emptyWarnCount++;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Önce bir kıyafet ekleyelim mi? 👕'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.addClothesFirst),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -174,31 +174,31 @@ class _MainShellState extends State<MainShell> {
           selectedIndex: _index,
           onDestinationSelected: _onTabChanged,
           backgroundColor: Colors.white,
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Ana Sayfa',
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home),
+              label: AppLocalizations.of(context)!.navHome,
             ),
             NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
-              label: 'Galeri',
+              icon: const Icon(Icons.grid_view_outlined),
+              selectedIcon: const Icon(Icons.grid_view),
+              label: AppLocalizations.of(context)!.navWardrobe,
             ),
             NavigationDestination(
-              icon: Icon(Icons.auto_awesome_outlined),
-              selectedIcon: Icon(Icons.auto_awesome),
-              label: 'Kombin',
+              icon: const Icon(Icons.auto_awesome_outlined),
+              selectedIcon: const Icon(Icons.auto_awesome),
+              label: AppLocalizations.of(context)!.navOutfits,
             ),
             NavigationDestination(
-              icon: Icon(Icons.add_box_outlined),
-              selectedIcon: Icon(Icons.add_box),
-              label: 'Oluştur',
+              icon: const Icon(Icons.add_box_outlined),
+              selectedIcon: const Icon(Icons.add_box),
+              label: AppLocalizations.of(context)!.navStudio,
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profil',
+              icon: const Icon(Icons.person_outline),
+              selectedIcon: const Icon(Icons.person),
+              label: AppLocalizations.of(context)!.navProfile,
             ),
           ],
         ),

@@ -87,9 +87,15 @@ class _StudioScreenState extends State<StudioScreen> {
   Future<void> _pickSide(String slot) async {
     final items = _itemsFor(slot);
     if (items.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$slot kategorisinde parça yok.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.noItemInCategory(_slotLabel(context, slot)),
+          ),
+        ),
+      );
       return;
     }
 
@@ -301,6 +307,24 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
+  String _slotLabel(BuildContext context, String slot) {
+    final t = AppLocalizations.of(context)!;
+    switch (slot) {
+      case 'Üst':
+        return t.upper;
+      case 'Alt':
+        return t.lower;
+      case 'Ayakkabı':
+        return t.shoes;
+      case 'Aksesuar':
+        return t.filterAccessory;
+      case 'Takı':
+        return t.filterJewelry;
+      default:
+        return slot;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -416,7 +440,7 @@ class _StudioScreenState extends State<StudioScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 20, bottom: 4),
             child: Text(
-              slot,
+              _slotLabel(context, slot),
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
@@ -461,7 +485,7 @@ class _StudioScreenState extends State<StudioScreen> {
         child: item == null
             ? Center(
                 child: Text(
-                  label,
+                  _slotLabel(context, label),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 10,

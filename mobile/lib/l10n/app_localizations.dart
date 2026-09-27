@@ -119,20 +119,20 @@ abstract class AppLocalizations {
   /// No description provided for @guestMode.
   ///
   /// In en, this message translates to:
-  /// **'You\'re in guest mode. Sign up or log in to save your clothes permanently.'**
+  /// **'You\'re in guest mode. Sign up or log in to keep your clothes permanently.'**
   String get guestMode;
 
   /// No description provided for @guestItemsWarn.
   ///
   /// In en, this message translates to:
   /// **'You have {count} items. They may be lost if you don\'t sign up — secure your account.'**
-  String guestItemsWarn(Object count);
+  String guestItemsWarn(int count);
 
   /// No description provided for @guestItemsCollected.
   ///
   /// In en, this message translates to:
   /// **'You\'ve collected {count} items! Sign up now so you don\'t lose them.'**
-  String guestItemsCollected(Object count);
+  String guestItemsCollected(int count);
 
   /// No description provided for @signUpOrLogin.
   ///
@@ -156,7 +156,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Today · {city}'**
-  String todayWithCity(Object city);
+  String todayWithCity(String city);
 
   /// No description provided for @today.
   ///
@@ -541,6 +541,516 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Luvia v1.0'**
   String get luviaV;
+
+  /// No description provided for @todayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get todayShort;
+
+  /// No description provided for @addSingleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Item'**
+  String get addSingleTitle;
+
+  /// No description provided for @addSingleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of a single item'**
+  String get addSingleSubtitle;
+
+  /// No description provided for @captureOutfitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture Outfit'**
+  String get captureOutfitTitle;
+
+  /// No description provided for @captureOutfitSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Full-body photo'**
+  String get captureOutfitSubtitle;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @cameraTutorial.
+  ///
+  /// In en, this message translates to:
+  /// **'Add clothes here 👕\nMultiple photos at once: 3 full-body, 5 single items 📸'**
+  String get cameraTutorial;
+
+  /// No description provided for @capture.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture'**
+  String get capture;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @tooManyPhotosContent.
+  ///
+  /// In en, this message translates to:
+  /// **'You can select up to {count} photos. Please select again.'**
+  String tooManyPhotosContent(int count);
+
+  /// No description provided for @useWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'Use weather'**
+  String get useWeather;
+
+  /// No description provided for @season.
+  ///
+  /// In en, this message translates to:
+  /// **'Season'**
+  String get season;
+
+  /// No description provided for @environment.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment'**
+  String get environment;
+
+  /// No description provided for @colorPreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Color preference'**
+  String get colorPreference;
+
+  /// No description provided for @stylePreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Style preference'**
+  String get stylePreference;
+
+  /// No description provided for @selectSeasonEnv.
+  ///
+  /// In en, this message translates to:
+  /// **'Select season and environment,\nwe\'ll create a custom outfit from your wardrobe.'**
+  String get selectSeasonEnv;
+
+  /// No description provided for @hintColorHarmony.
+  ///
+  /// In en, this message translates to:
+  /// **'Color harmony'**
+  String get hintColorHarmony;
+
+  /// No description provided for @hintSeasonAppropriate.
+  ///
+  /// In en, this message translates to:
+  /// **'Season-appropriate'**
+  String get hintSeasonAppropriate;
+
+  /// No description provided for @hintPersonalized.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalized'**
+  String get hintPersonalized;
+
+  /// No description provided for @seasonSummer.
+  ///
+  /// In en, this message translates to:
+  /// **'Summer'**
+  String get seasonSummer;
+
+  /// No description provided for @seasonWinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Winter'**
+  String get seasonWinter;
+
+  /// No description provided for @seasonMid.
+  ///
+  /// In en, this message translates to:
+  /// **'Mid-Season'**
+  String get seasonMid;
+
+  /// No description provided for @seasonAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All Seasons'**
+  String get seasonAll;
+
+  /// No description provided for @formalityHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get formalityHome;
+
+  /// No description provided for @formalityCasual.
+  ///
+  /// In en, this message translates to:
+  /// **'Casual'**
+  String get formalityCasual;
+
+  /// No description provided for @formalitySmart.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart'**
+  String get formalitySmart;
+
+  /// No description provided for @formalityBusiness.
+  ///
+  /// In en, this message translates to:
+  /// **'Business'**
+  String get formalityBusiness;
+
+  /// No description provided for @formalityFormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Formal'**
+  String get formalityFormal;
+
+  /// No description provided for @styleSporty.
+  ///
+  /// In en, this message translates to:
+  /// **'Sporty'**
+  String get styleSporty;
+
+  /// No description provided for @styleStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'Streetwear'**
+  String get styleStreet;
+
+  /// No description provided for @styleClassic.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get styleClassic;
+
+  /// No description provided for @styleMinimal.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimal'**
+  String get styleMinimal;
+
+  /// No description provided for @styleBohemian.
+  ///
+  /// In en, this message translates to:
+  /// **'Bohemian'**
+  String get styleBohemian;
+
+  /// No description provided for @styleSurprise.
+  ///
+  /// In en, this message translates to:
+  /// **'Surprise 🎲'**
+  String get styleSurprise;
+
+  /// No description provided for @colorBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get colorBlack;
+
+  /// No description provided for @colorWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get colorWhite;
+
+  /// No description provided for @colorGray.
+  ///
+  /// In en, this message translates to:
+  /// **'Gray'**
+  String get colorGray;
+
+  /// No description provided for @colorRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get colorRed;
+
+  /// No description provided for @colorBurgundy.
+  ///
+  /// In en, this message translates to:
+  /// **'Burgundy'**
+  String get colorBurgundy;
+
+  /// No description provided for @colorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get colorOrange;
+
+  /// No description provided for @colorYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get colorYellow;
+
+  /// No description provided for @colorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get colorGreen;
+
+  /// No description provided for @colorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get colorBlue;
+
+  /// No description provided for @colorNavy.
+  ///
+  /// In en, this message translates to:
+  /// **'Navy'**
+  String get colorNavy;
+
+  /// No description provided for @colorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get colorPurple;
+
+  /// No description provided for @colorPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get colorPink;
+
+  /// No description provided for @colorBrown.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get colorBrown;
+
+  /// No description provided for @colorBeige.
+  ///
+  /// In en, this message translates to:
+  /// **'Beige'**
+  String get colorBeige;
+
+  /// No description provided for @colorCream.
+  ///
+  /// In en, this message translates to:
+  /// **'Cream'**
+  String get colorCream;
+
+  /// No description provided for @colorKhaki.
+  ///
+  /// In en, this message translates to:
+  /// **'Khaki'**
+  String get colorKhaki;
+
+  /// No description provided for @colorTurquoise.
+  ///
+  /// In en, this message translates to:
+  /// **'Turquoise'**
+  String get colorTurquoise;
+
+  /// No description provided for @createOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Outfit'**
+  String get createOutfit;
+
+  /// No description provided for @suggestAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest Another'**
+  String get suggestAnother;
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @noItemInCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in {slot} category.'**
+  String noItemInCategory(String slot);
+
+  /// No description provided for @filterAccessory.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessory'**
+  String get filterAccessory;
+
+  /// No description provided for @filterJewelry.
+  ///
+  /// In en, this message translates to:
+  /// **'Jewelry'**
+  String get filterJewelry;
+
+  /// No description provided for @adviceNoLower.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no bottoms. Adding pants or a skirt will increase your outfit variety.'**
+  String get adviceNoLower;
+
+  /// No description provided for @adviceMoreUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding more tops will multiply your outfit options.'**
+  String get adviceMoreUpper;
+
+  /// No description provided for @filterDress.
+  ///
+  /// In en, this message translates to:
+  /// **'Dress'**
+  String get filterDress;
+
+  /// No description provided for @adviceNoShoes.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no shoes. Add a pair to complete your outfits.'**
+  String get adviceNoShoes;
+
+  /// No description provided for @adviceNoUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no tops. Add a few t-shirts or shirts to create outfits.'**
+  String get adviceNoUpper;
+
+  /// No description provided for @adviceBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Your wardrobe looks balanced! Add different colors to increase variety.'**
+  String get adviceBalanced;
+
+  /// No description provided for @adviceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Your wardrobe is empty. Add a few items to start getting outfit suggestions!'**
+  String get adviceEmpty;
+
+  /// No description provided for @navHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// No description provided for @navWardrobe.
+  ///
+  /// In en, this message translates to:
+  /// **'Wardrobe'**
+  String get navWardrobe;
+
+  /// No description provided for @navOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfits'**
+  String get navOutfits;
+
+  /// No description provided for @navStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Studio'**
+  String get navStudio;
+
+  /// No description provided for @navProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get navProfile;
+
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get welcomeBack;
+
+  /// No description provided for @email.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get email;
+
+  /// No description provided for @password.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password'**
+  String get forgotPassword;
+
+  /// No description provided for @login.
+  ///
+  /// In en, this message translates to:
+  /// **'Log In'**
+  String get login;
+
+  /// No description provided for @register.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get register;
+
+  /// No description provided for @noAccountRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? Sign up'**
+  String get noAccountRegister;
+
+  /// No description provided for @haveAccountLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? Log in'**
+  String get haveAccountLogin;
+
+  /// No description provided for @secureAccountDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure your account so you don\'t lose your clothes'**
+  String get secureAccountDesc;
+
+  /// No description provided for @createAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get createAccount;
+
+  /// No description provided for @enterEmailFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email first, then tap \"Forgot password\".'**
+  String get enterEmailFirst;
+
+  /// No description provided for @emailPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Email and password are required'**
+  String get emailPasswordRequired;
+
+  /// No description provided for @addClothesFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Shall we add an item first? 👕'**
+  String get addClothesFirst;
+
+  /// No description provided for @memberItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items · Luvia member'**
+  String memberItemCount(int count);
+
+  /// No description provided for @filterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// No description provided for @noItemInFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in \"{filter}\" category'**
+  String noItemInFilter(String filter);
 }
 
 class _AppLocalizationsDelegate

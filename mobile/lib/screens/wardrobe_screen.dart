@@ -104,9 +104,9 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           contents: [
             TargetContent(
               align: ContentAlign.top,
-              child: const Text(
-                'Buradan kıyafet ekle 👕\nAynı anda birden fazla fotoğraf: boydan 3, tek parça 5 📸',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              child: Text(
+                AppLocalizations.of(context)!.cameraTutorial,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ),
           ],
@@ -181,6 +181,28 @@ class WardrobeScreenState extends State<WardrobeScreen> {
     ).show(context: context);
   }
 
+  String _filterLabel(BuildContext context, String f) {
+    final t = AppLocalizations.of(context)!;
+    switch (f) {
+      case 'Tümü':
+        return t.filterAll;
+      case 'Üst':
+        return t.upper;
+      case 'Alt':
+        return t.lower;
+      case 'Elbise':
+        return t.filterDress;
+      case 'Ayakkabı':
+        return t.shoes;
+      case 'Aksesuar':
+        return t.filterAccessory;
+      case 'Takı':
+        return t.filterJewelry;
+      default:
+        return f;
+    }
+  }
+
   Future<void> _confirmDelete(WardrobeItem item) async {
     showModalBottomSheet(
       context: context,
@@ -192,7 +214,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Sil'),
+              title: Text(AppLocalizations.of(context)!.delete),
               subtitle: Text('${item.color} ${item.category}'),
               onTap: () {
                 Navigator.pop(context);
@@ -313,7 +335,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
       builder: (_) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.cokFazlaFotograf),
         content: Text(
-          'En fazla $maxCount fotoğraf seçebilirsin. Lütfen tekrar seç.',
+          AppLocalizations.of(context)!.tooManyPhotosContent(maxCount),
         ),
         actions: [
           TextButton(
@@ -385,15 +407,15 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           children: [
             _addRow(
               icon: Icons.checkroom,
-              title: 'Parça Ekle',
-              subtitle: 'Tek kıyafetin fotoğrafı',
+              title: AppLocalizations.of(context)!.addSingleTitle,
+              subtitle: AppLocalizations.of(context)!.addSingleSubtitle,
               fullbody: false,
             ),
             const Divider(height: 28),
             _addRow(
               icon: Icons.person,
-              title: 'Kombin Yakala',
-              subtitle: 'Boydan fotoğraf',
+              title: AppLocalizations.of(context)!.captureOutfitTitle,
+              subtitle: AppLocalizations.of(context)!.captureOutfitSubtitle,
               fullbody: true,
             ),
           ],
@@ -723,7 +745,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           },
           icon: const Icon(Icons.camera_alt),
           color: LuviaTheme.primary,
-          tooltip: 'Çek',
+          tooltip: AppLocalizations.of(context)!.capture,
           style: IconButton.styleFrom(backgroundColor: LuviaTheme.bgTop),
         ),
         const SizedBox(width: 8),
@@ -735,7 +757,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
           },
           icon: const Icon(Icons.photo_library),
           color: LuviaTheme.primary,
-          tooltip: 'Galeri',
+          tooltip: AppLocalizations.of(context)!.gallery,
           style: IconButton.styleFrom(backgroundColor: LuviaTheme.bgTop),
         ),
       ],
@@ -778,7 +800,7 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                 ],
               ),
               child: Text(
-                f,
+                _filterLabel(context, f),
                 style: TextStyle(
                   color: sel ? Colors.white : Colors.black87,
                   fontWeight: sel ? FontWeight.bold : FontWeight.normal,
@@ -941,7 +963,9 @@ class WardrobeScreenState extends State<WardrobeScreen> {
                   if (items.isEmpty) {
                     return Center(
                       child: Text(
-                        '"$_selectedFilter" kategorisinde parça yok',
+                        AppLocalizations.of(context)!.noItemInFilter(
+                          _filterLabel(context, _selectedFilter),
+                        ),
                         style: const TextStyle(color: Colors.black54),
                       ),
                     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../theme.dart';
 
@@ -20,7 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
     if (email.isEmpty || pass.isEmpty) {
-      _snack('E-posta ve şifre gerekli');
+      _snack(AppLocalizations.of(context)!.emailPasswordRequired);
       return;
     }
 
@@ -42,7 +43,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _forgotPassword() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
-      _snack('Önce e-posta adresini gir, sonra "Şifremi unuttum"a bas.');
+      _snack(AppLocalizations.of(context)!.enterEmailFirst);
       return;
     }
     setState(() => _loading = true);
@@ -101,18 +102,28 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 6),
                   Text(
                     _isLogin
-                        ? 'Tekrar hoş geldin'
+                        ? AppLocalizations.of(context)!.welcomeBack
                         : (isGuest
-                              ? 'Hesabını güvene al, kıyafetlerin kaybolmasın'
-                              : 'Hesap oluştur'),
+                              ? AppLocalizations.of(context)!.secureAccountDesc
+                              : AppLocalizations.of(context)!.createAccount),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 15, color: Colors.black54),
                   ),
                   const SizedBox(height: 32),
 
-                  _field(_emailCtrl, 'E-posta', Icons.email_outlined, false),
+                  _field(
+                    _emailCtrl,
+                    AppLocalizations.of(context)!.email,
+                    Icons.email_outlined,
+                    false,
+                  ),
                   const SizedBox(height: 14),
-                  _field(_passCtrl, 'Şifre', Icons.lock_outline, true),
+                  _field(
+                    _passCtrl,
+                    AppLocalizations.of(context)!.password,
+                    Icons.lock_outline,
+                    true,
+                  ),
 
                   // Şifremi unuttum — sadece giriş modunda göster
                   if (_isLogin)
@@ -120,9 +131,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: _loading ? null : _forgotPassword,
-                        child: const Text(
-                          'Şifremi unuttum',
-                          style: TextStyle(
+                        child: Text(
+                          AppLocalizations.of(context)!.forgotPassword,
+                          style: const TextStyle(
                             color: LuviaTheme.primary,
                             fontSize: 13,
                           ),
@@ -151,7 +162,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : Text(_isLogin ? 'Giriş Yap' : 'Kayıt Ol'),
+                          : Text(
+                              _isLogin
+                                  ? AppLocalizations.of(context)!.login
+                                  : AppLocalizations.of(context)!.register,
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -160,8 +175,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     onPressed: () => setState(() => _isLogin = !_isLogin),
                     child: Text(
                       _isLogin
-                          ? 'Hesabın yok mu? Kayıt ol'
-                          : 'Zaten hesabın var mı? Giriş yap',
+                          ? AppLocalizations.of(context)!.noAccountRegister
+                          : AppLocalizations.of(context)!.haveAccountLogin,
                       style: const TextStyle(color: LuviaTheme.primary),
                     ),
                   ),

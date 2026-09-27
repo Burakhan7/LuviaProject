@@ -19,15 +19,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guestMode =>
-      'You\'re in guest mode. Sign up or log in to save your clothes permanently.';
+      'You\'re in guest mode. Sign up or log in to keep your clothes permanently.';
 
   @override
-  String guestItemsWarn(Object count) {
+  String guestItemsWarn(int count) {
     return 'You have $count items. They may be lost if you don\'t sign up — secure your account.';
   }
 
   @override
-  String guestItemsCollected(Object count) {
+  String guestItemsCollected(int count) {
     return 'You\'ve collected $count items! Sign up now so you don\'t lose them.';
   }
 
@@ -41,7 +41,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentlyAdded => 'Recently Added';
 
   @override
-  String todayWithCity(Object city) {
+  String todayWithCity(String city) {
     return 'Today · $city';
   }
 
@@ -246,4 +246,277 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get luviaV => 'Luvia v1.0';
+
+  @override
+  String get todayShort => 'Today';
+
+  @override
+  String get addSingleTitle => 'Add Item';
+
+  @override
+  String get addSingleSubtitle => 'Photo of a single item';
+
+  @override
+  String get captureOutfitTitle => 'Capture Outfit';
+
+  @override
+  String get captureOutfitSubtitle => 'Full-body photo';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get cameraTutorial =>
+      'Add clothes here 👕\nMultiple photos at once: 3 full-body, 5 single items 📸';
+
+  @override
+  String get capture => 'Capture';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String tooManyPhotosContent(int count) {
+    return 'You can select up to $count photos. Please select again.';
+  }
+
+  @override
+  String get useWeather => 'Use weather';
+
+  @override
+  String get season => 'Season';
+
+  @override
+  String get environment => 'Environment';
+
+  @override
+  String get colorPreference => 'Color preference';
+
+  @override
+  String get stylePreference => 'Style preference';
+
+  @override
+  String get selectSeasonEnv =>
+      'Select season and environment,\nwe\'ll create a custom outfit from your wardrobe.';
+
+  @override
+  String get hintColorHarmony => 'Color harmony';
+
+  @override
+  String get hintSeasonAppropriate => 'Season-appropriate';
+
+  @override
+  String get hintPersonalized => 'Personalized';
+
+  @override
+  String get seasonSummer => 'Summer';
+
+  @override
+  String get seasonWinter => 'Winter';
+
+  @override
+  String get seasonMid => 'Mid-Season';
+
+  @override
+  String get seasonAll => 'All Seasons';
+
+  @override
+  String get formalityHome => 'Home';
+
+  @override
+  String get formalityCasual => 'Casual';
+
+  @override
+  String get formalitySmart => 'Smart';
+
+  @override
+  String get formalityBusiness => 'Business';
+
+  @override
+  String get formalityFormal => 'Formal';
+
+  @override
+  String get styleSporty => 'Sporty';
+
+  @override
+  String get styleStreet => 'Streetwear';
+
+  @override
+  String get styleClassic => 'Classic';
+
+  @override
+  String get styleMinimal => 'Minimal';
+
+  @override
+  String get styleBohemian => 'Bohemian';
+
+  @override
+  String get styleSurprise => 'Surprise 🎲';
+
+  @override
+  String get colorBlack => 'Black';
+
+  @override
+  String get colorWhite => 'White';
+
+  @override
+  String get colorGray => 'Gray';
+
+  @override
+  String get colorRed => 'Red';
+
+  @override
+  String get colorBurgundy => 'Burgundy';
+
+  @override
+  String get colorOrange => 'Orange';
+
+  @override
+  String get colorYellow => 'Yellow';
+
+  @override
+  String get colorGreen => 'Green';
+
+  @override
+  String get colorBlue => 'Blue';
+
+  @override
+  String get colorNavy => 'Navy';
+
+  @override
+  String get colorPurple => 'Purple';
+
+  @override
+  String get colorPink => 'Pink';
+
+  @override
+  String get colorBrown => 'Brown';
+
+  @override
+  String get colorBeige => 'Beige';
+
+  @override
+  String get colorCream => 'Cream';
+
+  @override
+  String get colorKhaki => 'Khaki';
+
+  @override
+  String get colorTurquoise => 'Turquoise';
+
+  @override
+  String get createOutfit => 'Create Outfit';
+
+  @override
+  String get suggestAnother => 'Suggest Another';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String noItemInCategory(String slot) {
+    return 'No items in $slot category.';
+  }
+
+  @override
+  String get filterAccessory => 'Accessory';
+
+  @override
+  String get filterJewelry => 'Jewelry';
+
+  @override
+  String get adviceNoLower =>
+      'You have no bottoms. Adding pants or a skirt will increase your outfit variety.';
+
+  @override
+  String get adviceMoreUpper =>
+      'Adding more tops will multiply your outfit options.';
+
+  @override
+  String get filterDress => 'Dress';
+
+  @override
+  String get adviceNoShoes =>
+      'You have no shoes. Add a pair to complete your outfits.';
+
+  @override
+  String get adviceNoUpper =>
+      'You have no tops. Add a few t-shirts or shirts to create outfits.';
+
+  @override
+  String get adviceBalanced =>
+      'Your wardrobe looks balanced! Add different colors to increase variety.';
+
+  @override
+  String get adviceEmpty =>
+      'Your wardrobe is empty. Add a few items to start getting outfit suggestions!';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navWardrobe => 'Wardrobe';
+
+  @override
+  String get navOutfits => 'Outfits';
+
+  @override
+  String get navStudio => 'Studio';
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
+  String get welcomeBack => 'Welcome back';
+
+  @override
+  String get email => 'Email';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get forgotPassword => 'Forgot password';
+
+  @override
+  String get login => 'Log In';
+
+  @override
+  String get register => 'Sign Up';
+
+  @override
+  String get noAccountRegister => 'Don\'t have an account? Sign up';
+
+  @override
+  String get haveAccountLogin => 'Already have an account? Log in';
+
+  @override
+  String get secureAccountDesc =>
+      'Secure your account so you don\'t lose your clothes';
+
+  @override
+  String get createAccount => 'Create account';
+
+  @override
+  String get enterEmailFirst =>
+      'Enter your email first, then tap \"Forgot password\".';
+
+  @override
+  String get emailPasswordRequired => 'Email and password are required';
+
+  @override
+  String get addClothesFirst => 'Shall we add an item first? 👕';
+
+  @override
+  String memberItemCount(int count) {
+    return '$count items · Luvia member';
+  }
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String noItemInFilter(String filter) {
+    return 'No items in \"$filter\" category';
+  }
 }
