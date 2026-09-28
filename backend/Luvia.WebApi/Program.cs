@@ -137,14 +137,14 @@ app.MapPatch("/wardrobe/items/{id}/correct", async (
 
 app.MapGet("/outfits/{userId}", async (
     string userId, Season season, Formality formality,
-        double? minTemp, double? maxTemp,   // ← YENİ
+        double? minTemp, double? maxTemp, string? condition,   // ← YENİ
     ColorName? preferredColor, Style? preferredStyle,
     int? offset,
     IWardrobeItemRepository repo, IOutfitRecommender recommender,
     CancellationToken ct) =>
 {
     var wardrobe = await repo.GetByUserAsync(userId, ct);
-    var context = new OutfitContext(season, formality, preferredColor, preferredStyle, minTemp, maxTemp);
+    var context = new OutfitContext(season, formality, preferredColor, preferredStyle, minTemp, maxTemp, condition);
     var result = recommender.Recommend(wardrobe, context,5, offset ?? 0);   // ← OutfitResult
 
     // Eksik varsa: kombin yok, mesaj dön

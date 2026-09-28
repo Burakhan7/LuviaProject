@@ -231,13 +231,14 @@ public class RuleBasedRecommender : IOutfitRecommender
     // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
     private static IReadOnlyList<Outfit> SelectDiverse(
-    List<Outfit> candidates, int maxResults,
-    List<WardrobeItem> jewelry, OutfitContext context)
+        List<Outfit> candidates, int maxResults,
+        List<WardrobeItem> jewelry, OutfitContext context)
     {
-        const double penaltyPerSharedItem = 0.15;
+        const double penaltyPerUsage = 0.50; // her önceki kullanım için AĞIR ceza
         var selected = new List<Outfit>();
         var pool = candidates.ToList();
-        var usedJewelry = new HashSet<Guid>(); // kullanılmış takılar
+        var usedJewelry = new HashSet<Guid>();
+        var usageCount = new Dictionary<Guid, int>(); // parça kaç kombinde kullanıldı
 
         while (selected.Count < maxResults && pool.Count > 0)
         {
@@ -246,8 +247,14 @@ public class RuleBasedRecommender : IOutfitRecommender
 
             foreach (var candidate in pool)
             {
-                int shared = MaxSharedItems(candidate, selected);
-                double adjusted = candidate.Score - penaltyPerSharedItem * shared;
+                // Bu adaydaki her parçanın önceki kullanım sayısı toplamı → ceza
+                double penalty = 0;
+                foreach (var item in candidate.Items)
+                {
+                    int used = usageCount.GetValueOrDefault(item.Id, 0);
+                    penalty += used * penaltyPerUsage;
+                }
+                double adjusted = candidate.Score - penalty;
                 if (adjusted > bestAdjusted)
                 {
                     bestAdjusted = adjusted;
@@ -255,23 +262,27 @@ public class RuleBasedRecommender : IOutfitRecommender
                 }
             }
 
+
             if (best is null) break;
             pool.Remove(best);
 
-            // Bu kombine, HENÜZ KULLANILMAMIŞ en uyumlu takıyı ata
+            // Takı ata (kullanılmamış)
             var available = jewelry.Where(j => !usedJewelry.Contains(j.Id)).ToList();
             var jew = SelectJewelry(best.Items.ToList(), available, context);
             if (jew.Count > 0)
             {
                 var withJewelry = best.Items.ToList();
                 withJewelry.AddRange(jew);
-                // Skoru takılı haliyle güncelle
                 var (score, reasons) = ScoreOutfit(withJewelry, context);
                 best = new Outfit { Items = withJewelry, Score = score, Reasons = reasons };
                 foreach (var j in jew) usedJewelry.Add(j.Id);
             }
 
             selected.Add(best);
+
+            // Seçilen kombinin TÜM parçalarının kullanım sayısını artır
+            foreach (var item in best.Items)
+                usageCount[item.Id] = usageCount.GetValueOrDefault(item.Id, 0) + 1;
         }
 
         return selected;
@@ -476,29 +487,30 @@ public class RuleBasedRecommender : IOutfitRecommender
     {
         if (outerwear.Count == 0) return null;
 
-        // ── Ceket gerekli mi? — Sıcaklık öncelikli, yoksa mevsim ──
+       
+        // ── HAVA DURUMU: yağmur/kar/fırtına → ceket KESİN ──
+        bool kotuHava = ctx.Condition is "Rain" or "Drizzle" or "Snow" or "Thunderstorm";
+
         bool ceketGerekli;
-        if (ctx.MinTemp is double minT)
+        if (kotuHava)
+        {
+            ceketGerekli = true;  // kötü hava → ceket şart (sıcaklık ne olursa)
+        }
+        else if (ctx.MinTemp is double minT)
         {
             double maxT = ctx.MaxTemp ?? minT;
             double fark = maxT - minT;
-
-            // Kural (araştırma bazlı):
-            // - En düşük 18°+ ve gün dengeli (fark<6) → ceket YOK
-            // - En düşük < 15° → ceket gerekli (serin)
-            // - Fark >= 8° (değişken gün) → çıkarılabilir katman için ceket öner
             if (minT >= 18)
-                ceketGerekli = false;              // en düşük ılık → ceket yok (fark ne olursa)
+                ceketGerekli = false;
             else if (minT < 15)
-                ceketGerekli = true;               // serin/soğuk → ceket
+                ceketGerekli = true;
             else if (fark >= 8)
-                ceketGerekli = true;               // 15-18 arası + değişken → çıkarılabilir katman
+                ceketGerekli = true;
             else
-                ceketGerekli = false;              // 15-18 arası dengeli → ceket yok
+                ceketGerekli = false;
         }
         else
         {
-            // Sıcaklık yok → mevsimle karar ver (fallback)
             ceketGerekli = ctx.Season == Season.Winter || ctx.Season == Season.MidSeason;
         }
 
