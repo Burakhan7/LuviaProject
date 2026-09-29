@@ -158,5 +158,20 @@
   "noItemInFilter": "No items in \"{filter}\" category",
   "@noItemInFilter": {
     "placeholders": { "filter": { "type": "String" } }
-  }
+  },
+    "slotMorning": "Morning",
+  "slotAfternoon": "Afternoon",
+  "slotEvening": "Late afternoon",
+  "slotNight": "Evening",
+  "weatherClear": "clear",
+  "weatherCloudy": "cloudy",
+  "weatherRainy": "rainy",
+  "weatherSnowy": "snowy",
+  "weatherStorm": "stormy",
+  "tipUmbrellaJacket": "You may want an umbrella and a jacket.",
+  "tipUmbrella": "You may want an umbrella.",
+  "tipHeavy": "Dress warmly.",
+  "tipLightJacket": "A light jacket would be good.",
+  "tipLight": "Dress light.",
+  "tipNice": "Nice weather."
 }

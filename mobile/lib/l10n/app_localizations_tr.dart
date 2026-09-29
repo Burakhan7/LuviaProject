@@ -521,4 +521,49 @@ class AppLocalizationsTr extends AppLocalizations {
   String noItemInFilter(String filter) {
     return '\"$filter\" kategorisinde parça yok';
   }
+
+  @override
+  String get slotMorning => 'Sabah-öğle';
+
+  @override
+  String get slotAfternoon => 'Öğleden sonra';
+
+  @override
+  String get slotEvening => 'Akşam üstü';
+
+  @override
+  String get slotNight => 'Akşam';
+
+  @override
+  String get weatherClear => 'açık';
+
+  @override
+  String get weatherCloudy => 'bulutlu';
+
+  @override
+  String get weatherRainy => 'yağmurlu';
+
+  @override
+  String get weatherSnowy => 'karlı';
+
+  @override
+  String get weatherStorm => 'fırtınalı';
+
+  @override
+  String get tipUmbrellaJacket => 'Şemsiye ve ceket alabilirsin.';
+
+  @override
+  String get tipUmbrella => 'Şemsiye alabilirsin.';
+
+  @override
+  String get tipHeavy => 'Kalın giyin.';
+
+  @override
+  String get tipLightJacket => 'Hafif bir ceket iyi olur.';
+
+  @override
+  String get tipLight => 'Hafif giyin.';
+
+  @override
+  String get tipNice => 'Güzel bir hava.';
 }

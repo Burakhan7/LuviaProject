@@ -56,6 +56,7 @@ class ApiService {
     int offset = 0, // sonraki 5 için
     double? minTemp, // çıkış-sonrası en düşük sıcaklık
     double? maxTemp, // çıkış-sonrası en yüksek sıcaklık
+    String? condition,
   }) async {
     // Query parametrelerini oluştur
     final params = <String, String>{
@@ -67,6 +68,7 @@ class ApiService {
     if (preferredStyle != null) params['preferredStyle'] = preferredStyle;
     if (minTemp != null) params['minTemp'] = minTemp.toStringAsFixed(1);
     if (maxTemp != null) params['maxTemp'] = maxTemp.toStringAsFixed(1);
+    if (condition != null) params['condition'] = condition;
 
     final uri = Uri.parse(
       '$baseUrl/outfits/$_userId',
@@ -134,10 +136,12 @@ class ApiService {
     String formality, {
     double? minTemp,
     double? maxTemp,
+    String? condition, // ← YENİ
   }) async {
     final params = <String, String>{'season': season, 'formality': formality};
     if (minTemp != null) params['minTemp'] = minTemp.toStringAsFixed(1);
     if (maxTemp != null) params['maxTemp'] = maxTemp.toStringAsFixed(1);
+    if (condition != null) params['condition'] = condition; // ← YENİ
 
     final uri = Uri.parse(
       '$baseUrl/outfits/$_userId/daily',

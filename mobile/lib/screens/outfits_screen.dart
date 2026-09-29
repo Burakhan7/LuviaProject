@@ -24,6 +24,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
   String _formality = 'Casual';
   bool _useWeather = false; // ← toggle durumu
   WeatherResult? _weatherResult;
+  DailyForecast? _todayForecast;
   bool _weatherLoading = false;
   bool _useColor = false; // renk toggle açık mı
   String? _selectedColor; // seçilen renk
@@ -178,12 +179,23 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
     }
 
     setState(() {
+      double? mn, mx;
+      String? cond;
+      if (_useWeather && _todayForecast != null) {
+        final (a, b, c) = _todayForecast!.fromNowRange();
+        mn = a;
+        mx = b;
+        cond = c;
+      }
       _future = _api.getOutfits(
         _season,
         _formality,
         preferredColor: _useColor ? _selectedColor : null,
         preferredStyle: _useStyle ? _selectedStyle : null,
         offset: _offset, // ← offset'i geçir
+        minTemp: mn,
+        maxTemp: mx,
+        condition: cond,
       );
     });
   }
@@ -195,6 +207,8 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
     }
     setState(() => _weatherLoading = true);
     final outcome = await _weather.getWeather();
+    final forecastOutcome = await _weather
+        .getTodayForecast(); // ← forecast da çek
     if (!mounted) return;
     setState(() => _weatherLoading = false);
 
@@ -203,6 +217,7 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
       setState(() => _useWeather = false);
       return;
     }
+    _todayForecast = forecastOutcome.forecast; // ← forecast'i sakla
 
     final w = outcome.result!;
     setState(() {
@@ -793,7 +808,11 @@ class _OutfitsScreenState extends State<OutfitsScreen> {
           ),
 
           const SizedBox(height: 8),
-          OutfitCardGrid(items: o.items, showBackground: false, itemSize: 100),
+          // 220 yerine 260-280 vererek 2 satırlı kombinlerde parçaların ferah görünmesini sağla
+          SizedBox(
+            height: 270,
+            child: OutfitCardGrid(items: o.items, showBackground: false),
+          ),
           if (o.reasons.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(

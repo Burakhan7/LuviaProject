@@ -89,13 +89,21 @@ class HomeScreenState extends State<HomeScreen> {
         _todayForecast?.season ??
         _currentWeather?.season ??
         WeatherService.seasonFromMonth();
-    final (mn, mx) = _todayForecast?.outboundMinMax ?? (null, null);
+    double? mn, mx;
+    String? cond;
+    if (_todayForecast != null) {
+      final (a, b, c) = _todayForecast!.dayRange(); // 8-21 tüm gün
+      mn = a;
+      mx = b;
+      cond = c;
+    }
     setState(() {
       _dailyOutfitFuture = _api.getDailyOutfit(
         season,
         'Casual',
         minTemp: mn,
         maxTemp: mx,
+        condition: cond,
       );
     });
   }
@@ -346,11 +354,11 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            f.slotAdvice,
+            f.richAdvice(context),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 13,
-              height: 1.3,
+              height: 1.5,
             ),
           ),
         ],
@@ -541,7 +549,7 @@ class HomeScreenState extends State<HomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            OutfitCardGrid(items: outfit.items, itemSize: 88),
+            SizedBox(height: 250, child: OutfitCardGrid(items: outfit.items)),
             const SizedBox(height: 14),
             Text(
               AppLocalizations.of(context)!.bugununKombiniHazir,

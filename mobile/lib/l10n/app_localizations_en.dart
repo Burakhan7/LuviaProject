@@ -519,4 +519,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String noItemInFilter(String filter) {
     return 'No items in \"$filter\" category';
   }
+
+  @override
+  String get slotMorning => 'Morning';
+
+  @override
+  String get slotAfternoon => 'Afternoon';
+
+  @override
+  String get slotEvening => 'Late afternoon';
+
+  @override
+  String get slotNight => 'Evening';
+
+  @override
+  String get weatherClear => 'clear';
+
+  @override
+  String get weatherCloudy => 'cloudy';
+
+  @override
+  String get weatherRainy => 'rainy';
+
+  @override
+  String get weatherSnowy => 'snowy';
+
+  @override
+  String get weatherStorm => 'stormy';
+
+  @override
+  String get tipUmbrellaJacket => 'You may want an umbrella and a jacket.';
+
+  @override
+  String get tipUmbrella => 'You may want an umbrella.';
+
+  @override
+  String get tipHeavy => 'Dress warmly.';
+
+  @override
+  String get tipLightJacket => 'A light jacket would be good.';
+
+  @override
+  String get tipLight => 'Dress light.';
+
+  @override
+  String get tipNice => 'Nice weather.';
 }

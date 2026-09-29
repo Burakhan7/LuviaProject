@@ -1,7 +1,9 @@
 // lib/services/weather_service.dart
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile/l10n/app_localizations.dart';
 
 enum WeatherStatus { ok, serviceDisabled, denied, deniedForever, error }
 
@@ -21,9 +23,12 @@ class WeatherResult {
 }
 
 class HourSlot {
-  final int hour; // 0-23
+  final int hour;
   final double temp;
-  HourSlot(this.hour, this.temp);
+  final String
+  condition; // "Clear","Clouds","Rain","Snow","Drizzle","Thunderstorm"
+  final int pop; // yağmur ihtimali % (0-100)
+  HourSlot(this.hour, this.temp, this.condition, this.pop);
 }
 
 class DailyForecast {
@@ -113,6 +118,142 @@ class DailyForecast {
 
     if (parts.isEmpty) return advice; // dilim yoksa gün geneli
     return parts.join(', ');
+  }
+
+  /// Kullanıcının girdiği dilimden itibaren 4-dilim zengin hava metni.
+  String richAdvice(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final now = DateTime.now().hour;
+
+    // Dilimler: (isim-key, başlangıç, bitiş)
+    final dilimler = [
+      ('morning', 6, 12), // Sabah-öğle
+      ('afternoon', 12, 16), // Öğleden sonra
+      ('evening', 16, 20), // Akşam üstü
+      ('night', 20, 24), // Akşam
+    ];
+
+    String dilimAdi(String key) {
+      switch (key) {
+        case 'morning':
+          return t.slotMorning;
+        case 'afternoon':
+          return t.slotAfternoon;
+        case 'evening':
+          return t.slotEvening;
+        case 'night':
+          return t.slotNight;
+        default:
+          return '';
+      }
+    }
+
+    String durumMetni(String cond) {
+      switch (cond) {
+        case 'Rain':
+        case 'Drizzle':
+          return t.weatherRainy;
+        case 'Clouds':
+          return t.weatherCloudy;
+        case 'Clear':
+          return t.weatherClear;
+        case 'Snow':
+          return t.weatherSnowy;
+        case 'Thunderstorm':
+          return t.weatherStorm;
+        default:
+          return t.weatherCloudy;
+      }
+    }
+
+    // Akıllı öneri (senin inisiyatifime bıraktığın)
+    String oneri(double temp, int pop, String cond) {
+      if (pop >= 40 && temp < 16) return t.tipUmbrellaJacket; // şemsiye + ceket
+      if (pop >= 40) return t.tipUmbrella; // şemsiye
+      if (temp < 10) return t.tipHeavy; // kalın giyin
+      if (temp < 16) return t.tipLightJacket; // hafif ceket
+      if (temp > 26) return t.tipLight; // hafif giyin
+      return t.tipNice; // güzel hava
+    }
+
+    final parts = <String>[];
+    for (final (key, start, end) in dilimler) {
+      if (end <= now) continue; // geçmiş dilim → atla
+
+      final dilimSlots = slots
+          .where((s) => s.hour >= start && s.hour < end)
+          .toList();
+      if (dilimSlots.isEmpty) continue;
+
+      final avgTemp =
+          dilimSlots.map((s) => s.temp).reduce((a, b) => a + b) /
+          dilimSlots.length;
+      final maxPop = dilimSlots
+          .map((s) => s.pop)
+          .reduce((a, b) => a > b ? a : b);
+      // Dilimin baskın durumu (ilk slot yeterli, ya da en kötü)
+      final cond = dilimSlots.first.condition;
+
+      final ad = dilimAdi(key);
+      final durum = durumMetni(cond);
+      final tip = oneri(avgTemp, maxPop, cond);
+      final popText = maxPop >= 20 ? ' %$maxPop' : '';
+
+      // "Akşam üstü (16-20) 20° $durum$popText. $tip"
+      parts.add(
+        '$ad (${start}-${end}) ${avgTemp.round()}°$popText $durum. $tip',
+      );
+    }
+
+    if (parts.isEmpty) return advice; // dilim kalmadıysa gün geneli
+    return parts.join('\n');
+  }
+
+  /// Ana sayfa için: 8-21 arası min/max + baskın durum (tüm gün mantığı)
+  (double, double, String) dayRange() {
+    return _rangeFor(8, 21);
+  }
+
+  /// Kombin ekranı için: şu andan gün sonuna min/max + baskın durum (o an+sonrası)
+  (double, double, String) fromNowRange() {
+    final now = DateTime.now().hour;
+    return _rangeFor(now, 24);
+  }
+
+  /// Belirli saat aralığı için min/max sıcaklık + baskın hava durumu
+  (double, double, String) _rangeFor(int start, int end) {
+    final inRange = slots.where((s) {
+      final h = s.hour < 6 ? s.hour + 24 : s.hour;
+      return h >= start && h < end;
+    }).toList();
+
+    if (inRange.isEmpty) {
+      return (minTemp, maxTemp, 'Clear'); // veri yoksa gün geneli
+    }
+
+    final mn = inRange.map((s) => s.temp).reduce((a, b) => a < b ? a : b);
+    final mx = inRange.map((s) => s.temp).reduce((a, b) => a > b ? a : b);
+
+    // Baskın durum: bir dilimin TAMAMI yağmursa yağmur, değilse en sık
+    final conds = inRange.map((s) => s.condition).toList();
+    final bad = ['Rain', 'Drizzle', 'Snow', 'Thunderstorm'];
+    // Tüm dilim kötü havaysa onu seç
+    if (conds.every((c) => bad.contains(c))) {
+      // en kötüsünü öncelikle (Storm > Snow > Rain)
+      if (conds.contains('Thunderstorm')) return (mn, mx, 'Thunderstorm');
+
+      if (conds.contains('Snow')) return (mn, mx, 'Snow');
+      return (mn, mx, 'Rain');
+    }
+    // Değilse en sık durum
+    final freq = <String, int>{};
+    for (final c in conds) {
+      freq[c] = (freq[c] ?? 0) + 1;
+    }
+    final dominant = freq.entries
+        .reduce((a, b) => a.value >= b.value ? a : b)
+        .key;
+    return (mn, mx, dominant);
   }
 
   /// Çıkış saatinden (baktığın saat + hazırlık payı) sonraki min/max sıcaklık.
@@ -241,7 +382,9 @@ class WeatherService {
         if (itemStr != todayStr) continue;
 
         final t = (item['main']['temp'] as num).toDouble();
-        slots.add(HourSlot(dt.hour, t));
+        final cond = (item['weather']?[0]?['main'] as String?) ?? 'Clear';
+        final pop = (((item['pop'] as num?) ?? 0) * 100).round();
+        slots.add(HourSlot(dt.hour, t, cond, pop));
         if (t < minT) minT = t;
         if (t > maxT) maxT = t;
       }
@@ -253,7 +396,9 @@ class WeatherService {
             (item['dt'] as int) * 1000,
           );
           final t = (item['main']['temp'] as num).toDouble();
-          slots.add(HourSlot(dt.hour, t));
+          final cond = (item['weather']?[0]?['main'] as String?) ?? 'Clear';
+          final pop = (((item['pop'] as num?) ?? 0) * 100).round();
+          slots.add(HourSlot(dt.hour, t, cond, pop));
           if (t < minT) minT = t;
           if (t > maxT) maxT = t;
         }

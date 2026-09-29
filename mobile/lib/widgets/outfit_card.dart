@@ -179,88 +179,117 @@ class _AxisStack extends StatelessWidget {
   }
 }
 
-// ── Yaklaşım C: Collage/Grid kart ──
 class OutfitCardGrid extends StatelessWidget {
   final List<WardrobeItem> items;
   final bool showBackground;
-  final double itemSize;
+
   const OutfitCardGrid({
     super.key,
     required this.items,
     this.showBackground = true,
-    this.itemSize = 90,
   });
+
+  List<int> _rowCounts(int n) {
+    switch (n) {
+      case 1:
+        return [1];
+      case 2:
+        return [2];
+      case 3:
+        return [3]; // 3 öğeyi tek satıra alarak daha simetrik ve büyük gösterir
+      case 4:
+        return [2, 2];
+      case 5:
+        return [3, 2];
+      case 6:
+        return [3, 3];
+      default:
+        return [3, 3];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final display = items.take(6).toList(); // max 6 parça
+    final display = items.take(6).toList();
+    if (display.isEmpty) return const SizedBox.shrink();
 
-    final layout = Padding(
-      padding: EdgeInsets.all(showBackground ? 16 : 0),
-      child: _buildLayout(display),
+    final rows = _rowCounts(display.length);
+    final maxCols = rows.reduce((a, b) => a > b ? a : b);
+
+    final content = LayoutBuilder(
+      builder: (context, constraints) {
+        // Mevcut alan (iç padding'ler düşülmüş hali)
+        final w = constraints.maxWidth;
+        final h = constraints.maxHeight.isFinite ? constraints.maxHeight : w;
+
+        const double gap = 12.0;
+
+        // Yatay ve dikey kısıtlamalara göre ulaşılabilecek maksimum kare kenarı
+        final cellW = (w - (maxCols - 1) * gap) / maxCols;
+        final cellH = (h - (rows.length - 1) * gap) / rows.length;
+        final cellSize = (cellW < cellH ? cellW : cellH).clamp(40.0, 160.0);
+
+        int idx = 0;
+        final rowWidgets = <Widget>[];
+
+        for (int r = 0; r < rows.length; r++) {
+          final count = rows[r];
+          final cells = <Widget>[];
+
+          for (int c = 0; c < count; c++) {
+            if (idx >= display.length) break;
+            final it = display[idx++];
+
+            cells.add(
+              SizedBox(
+                width: cellSize,
+                height: cellSize,
+                child: it.processedImageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: it.processedImageUrl!,
+                        fit: BoxFit.contain,
+                        memCacheWidth: 400,
+                        placeholder: (c, u) => const SizedBox.shrink(),
+                        errorWidget: (c, u, e) =>
+                            const Icon(Icons.checkroom, size: 36),
+                      )
+                    : const Icon(Icons.checkroom, size: 36),
+              ),
+            );
+          }
+
+          rowWidgets.add(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: cells,
+            ),
+          );
+        }
+
+        return SizedBox(
+          width: double.infinity,
+          height: h,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: rowWidgets,
+          ),
+        );
+      },
     );
 
-    if (!showBackground) return layout;
+    if (!showBackground) return content;
 
     return Container(
+      width: double
+          .infinity, // Kartın yatayda mor alanın tamamına yayılmasını sağlar
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: layout,
-    );
-  }
-
-  Widget _buildLayout(List<WardrobeItem> items) {
-    final n = items.length;
-
-    // Satırları belirle (üst satır kaç, alt satır kaç)
-    List<List<WardrobeItem>> rows;
-    if (n <= 2) {
-      rows = [items]; // hepsi tek satır
-    } else if (n == 3) {
-      rows = [items.take(2).toList(), items.skip(2).toList()]; // 2 + 1
-    } else if (n == 4) {
-      rows = [items.take(2).toList(), items.skip(2).toList()]; // 2 + 2
-    } else if (n == 5) {
-      rows = [items.take(3).toList(), items.skip(3).toList()]; // 3 + 2
-    } else {
-      rows = [items.take(3).toList(), items.skip(3).toList()]; // 3 + 3
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (int r = 0; r < rows.length; r++) ...[
-          if (r > 0) const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (int c = 0; c < rows[r].length; c++) ...[
-                if (c > 0) const SizedBox(width: 8),
-                _gridItem(rows[r][c]),
-              ],
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _gridItem(WardrobeItem it) {
-    return SizedBox(
-      width: itemSize,
-      height: itemSize,
-      child: it.processedImageUrl != null
-          ? CachedNetworkImage(
-              imageUrl: it.processedImageUrl!,
-              fit: BoxFit.contain,
-              memCacheWidth: 300,
-              placeholder: (c, u) => const SizedBox.shrink(),
-              errorWidget: (c, u, e) => const Icon(Icons.checkroom),
-            )
-          : const Icon(Icons.checkroom),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: content,
     );
   }
 }

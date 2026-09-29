@@ -1051,6 +1051,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No items in \"{filter}\" category'**
   String noItemInFilter(String filter);
+
+  /// No description provided for @slotMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning'**
+  String get slotMorning;
+
+  /// No description provided for @slotAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Afternoon'**
+  String get slotAfternoon;
+
+  /// No description provided for @slotEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Late afternoon'**
+  String get slotEvening;
+
+  /// No description provided for @slotNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening'**
+  String get slotNight;
+
+  /// No description provided for @weatherClear.
+  ///
+  /// In en, this message translates to:
+  /// **'clear'**
+  String get weatherClear;
+
+  /// No description provided for @weatherCloudy.
+  ///
+  /// In en, this message translates to:
+  /// **'cloudy'**
+  String get weatherCloudy;
+
+  /// No description provided for @weatherRainy.
+  ///
+  /// In en, this message translates to:
+  /// **'rainy'**
+  String get weatherRainy;
+
+  /// No description provided for @weatherSnowy.
+  ///
+  /// In en, this message translates to:
+  /// **'snowy'**
+  String get weatherSnowy;
+
+  /// No description provided for @weatherStorm.
+  ///
+  /// In en, this message translates to:
+  /// **'stormy'**
+  String get weatherStorm;
+
+  /// No description provided for @tipUmbrellaJacket.
+  ///
+  /// In en, this message translates to:
+  /// **'You may want an umbrella and a jacket.'**
+  String get tipUmbrellaJacket;
+
+  /// No description provided for @tipUmbrella.
+  ///
+  /// In en, this message translates to:
+  /// **'You may want an umbrella.'**
+  String get tipUmbrella;
+
+  /// No description provided for @tipHeavy.
+  ///
+  /// In en, this message translates to:
+  /// **'Dress warmly.'**
+  String get tipHeavy;
+
+  /// No description provided for @tipLightJacket.
+  ///
+  /// In en, this message translates to:
+  /// **'A light jacket would be good.'**
+  String get tipLightJacket;
+
+  /// No description provided for @tipLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Dress light.'**
+  String get tipLight;
+
+  /// No description provided for @tipNice.
+  ///
+  /// In en, this message translates to:
+  /// **'Nice weather.'**
+  String get tipNice;
 }
 
 class _AppLocalizationsDelegate

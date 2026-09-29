@@ -158,6 +158,21 @@
    "noItemInFilter": "\"{filter}\" kategorisinde parça yok",
      "@noItemInFilter": {
     "placeholders": { "filter": { "type": "String" } }
-  }
+  },
+    "slotMorning": "Sabah-öğle",
+  "slotAfternoon": "Öğleden sonra",
+  "slotEvening": "Akşam üstü",
+  "slotNight": "Akşam",
+  "weatherClear": "açık",
+  "weatherCloudy": "bulutlu",
+  "weatherRainy": "yağmurlu",
+  "weatherSnowy": "karlı",
+  "weatherStorm": "fırtınalı",
+  "tipUmbrellaJacket": "Şemsiye ve ceket alabilirsin.",
+  "tipUmbrella": "Şemsiye alabilirsin.",
+  "tipHeavy": "Kalın giyin.",
+  "tipLightJacket": "Hafif bir ceket iyi olur.",
+  "tipLight": "Hafif giyin.",
+  "tipNice": "Güzel bir hava."
 
 }
