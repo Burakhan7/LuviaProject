@@ -119,10 +119,10 @@ public class RuleBasedRecommender : IOutfitRecommender
         // Determinist tarama sırası: bugünün seed'ine göre karıştır ama sıralı
         var ordered = OrderBySeed(candidates, date);
 
-        Outfit? chosen = null;
         foreach (var candidate in ordered)
         {
             var ids = candidate.Items.Select(i => i.Id).ToList();
+            // Bu adayın, geçmiş günlerin herhangi biriyle en çok kaç ortak item'ı var
             int maxShared = 0;
             foreach (var combo in pastCombos)
             {
@@ -130,10 +130,10 @@ public class RuleBasedRecommender : IOutfitRecommender
                 if (shared > maxShared) maxShared = shared;
             }
 
+            // İdeal: 0 ortak. Kabul: ≤1 ortak. En az benzeyeni sakla (fallback).
             if (maxShared == 0)
             {
-                chosen = candidate; // mükemmel — hiç ortak yok
-                break;
+                return candidate; // mükemmel — hiç ortak yok, direkt seç
             }
             if (maxShared < bestMaxShared)
             {
@@ -142,21 +142,8 @@ public class RuleBasedRecommender : IOutfitRecommender
             }
         }
 
-        chosen ??= best ?? candidates.First();
-
-        // ── Bugünün kombinine CEKET ekle (ceket artık SelectDiverse/buraya taşındı) ──
-        var outerwear = wardrobe.Where(i => i.IsAvailable
-            && i.Kind == ItemKind.Clothing && IsOuterwear(i.Category)).ToList();
-        var jacket = PickOuterwear(chosen.Items.ToList(), outerwear, new Dictionary<Guid, int>(), context);
-        if (jacket != null)
-        {
-            var withJacket = chosen.Items.ToList();
-            withJacket.Add(jacket);
-            var (sc, rs) = ScoreOutfit(withJacket, context);
-            chosen = new Outfit { Items = withJacket, Score = sc, Reasons = rs };
-        }
-
-        return chosen;
+        // 0 ortak bulunamadıysa, en az benzeyen (mümkünse ≤1) döner
+        return best ?? candidates.First();
     }
 
     // Belirli bir tarih için determinist kombin seç (geçmiş gün hesabı için)
