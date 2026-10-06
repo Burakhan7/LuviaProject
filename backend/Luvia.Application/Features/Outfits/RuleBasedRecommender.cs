@@ -522,6 +522,13 @@ public class RuleBasedRecommender : IOutfitRecommender
 
         foreach (var jacket in outerwear)
         {
+            // Ceketin mevsimi hedefe uygun değilse atla (Winter coat MidSeason'da gelmez)
+            if (jacket.Season is Season js
+                && js != Season.MidSeason
+                && js != Season.AllSeason
+                && js != ctx.Season)
+                continue;
+
             // Ceketi kombine ekleyip renk+formalite uyumuna bak
             var withJacket = new List<WardrobeItem>(outfit) { jacket };
             var tempReasons = new List<string>();
