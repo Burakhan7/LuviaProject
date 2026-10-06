@@ -47,8 +47,30 @@ public class RuleBasedRecommender : IOutfitRecommender
             }
         }
 
-        // Aday kombinler — BuildCandidates (takı + ceket dahil, tutarlı)
         var candidates = BuildCandidates(wardrobe, context);
+
+        // Kombin üretilemediyse — NEDEN? (eksik ana parça mı, bağlam mı)
+        if (candidates.Count == 0)
+        {
+            var avail = wardrobe.Where(i => i.IsAvailable).ToList();
+            bool hasShoes = avail.Any(i => i.Kind == ItemKind.Shoes);
+            bool hasTop = avail.Any(i => i.Kind == ItemKind.Clothing && IsInnerTop(i.Category));
+            bool hasBottom = avail.Any(i => i.Kind == ItemKind.Clothing && IsBottom(i.Category));
+            bool hasDress = avail.Any(i => i.Category == Category.Dress);
+
+            string msg;
+            if (!hasShoes)
+                msg = "Ayakkabı eklemelisin — kombin önerebilmem için bir çift ayakkabı gerekli.";
+            else if (!hasTop && !hasDress)
+                msg = "Üst giyim eklemelisin — tişört, gömlek, kazak ya da elbise gerekli.";
+            else if (!hasBottom && !hasDress)
+                msg = "Alt giyim eklemelisin — pantolon, etek ya da elbise gerekli.";
+            else
+                msg = "Bu mevsim/tarz için uygun kombin bulunamadı. Farklı bir mevsim ya da tarz dene.";
+
+            return new OutfitResult(new List<Outfit>(), msg);
+        }
+
         int poolSize = Math.Max(maxResults * 5, 25);
         var jewelry = wardrobe.Where(i => i.Kind == ItemKind.Jewelry).ToList();
         var selected = SelectDiverse(candidates, poolSize, jewelry, context);
