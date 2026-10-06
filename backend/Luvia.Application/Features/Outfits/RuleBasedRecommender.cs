@@ -73,7 +73,8 @@ public class RuleBasedRecommender : IOutfitRecommender
 
         int poolSize = Math.Max(maxResults * 5, 25);
         var jewelry = wardrobe.Where(i => i.Kind == ItemKind.Jewelry).ToList();
-        var selected = SelectDiverse(candidates, poolSize, jewelry, context);
+        var outerwear = wardrobe.Where(i => i.IsAvailable && i.Kind == ItemKind.Clothing && IsOuterwear(i.Category)).ToList();
+        var selected = SelectDiverse(candidates, poolSize, jewelry, outerwear, context);
         var page = selected.Skip(offset).Take(maxResults).ToList();
         return new OutfitResult(page);
     }
@@ -222,10 +223,6 @@ public class RuleBasedRecommender : IOutfitRecommender
                     var items = new List<WardrobeItem> { top, bottom, shoe };
                     if (!PassesHardConstraints(items, context)) continue;
 
-                    // Ceket ekle (mevsim uygunsa + varsa)
-                    var jacket = SelectOuterwear(items, outerwear, context);
-                    if (jacket != null) items.Add(jacket);
-
                    
 
                     var (score, reasons) = ScoreOutfit(items, context);
@@ -238,8 +235,6 @@ public class RuleBasedRecommender : IOutfitRecommender
                 var items = new List<WardrobeItem> { dress, shoe };
                 if (!PassesHardConstraints(items, context)) continue;
 
-                var jacket = SelectOuterwear(items, outerwear, context);
-                if (jacket != null) items.Add(jacket);
 
                 
 
@@ -250,17 +245,69 @@ public class RuleBasedRecommender : IOutfitRecommender
         return candidates;
     }
 
+    // Ceket seç: mevsim/hava uygunsa, EN AZ KULLANILMIŞ uyumlu ceketi (çeşitlilik).
+    // Tek uygun ceket varsa mecbur onu koyar (ceza işlemez).
+    private static WardrobeItem? PickOuterwear(
+        List<WardrobeItem> outfit, List<WardrobeItem> outerwear,
+        Dictionary<Guid, int> usage, OutfitContext ctx)
+    {
+        if (outerwear.Count == 0) return null;
+
+        // Ceket gerekli mi? (SelectOuterwear'daki hava/sıcaklık/mevsim mantığı)
+        bool kotuHava = ctx.Condition is "Rain" or "Drizzle" or "Snow" or "Thunderstorm";
+        bool ceketGerekli;
+        if (kotuHava) ceketGerekli = true;
+        else if (ctx.MinTemp is double minT)
+        {
+            double maxT = ctx.MaxTemp ?? minT;
+            double fark = maxT - minT;
+            if (minT >= 18) ceketGerekli = false;
+            else if (minT < 15) ceketGerekli = true;
+            else if (fark >= 8) ceketGerekli = true;
+            else ceketGerekli = false;
+        }
+        else ceketGerekli = ctx.Season == Season.Winter || ctx.Season == Season.MidSeason;
+
+        if (!ceketGerekli) return null;
+
+        // Mevsim uygun ceketleri filtrele (Winter coat MidSeason'da gelmez)
+        var uygun = outerwear.Where(j =>
+            j.Season is not Season js
+            || js == Season.MidSeason || js == Season.AllSeason || js == ctx.Season
+        ).ToList();
+        if (uygun.Count == 0) return null;
+
+
+        // Her ceket için: uyum skoru - kullanım cezası
+        WardrobeItem? best = null;
+        double bestAdj = double.NegativeInfinity;
+        foreach (var jacket in uygun)
+        {
+            var withJacket = new List<WardrobeItem>(outfit) { jacket };
+            var tmp = new List<string>();
+            double color = ScoreColor(withJacket, tmp);
+            double formality = ScoreFormality(withJacket, tmp);
+            double score = color * 0.6 + formality * 0.4;
+            // Çeşitlilik: tek ceket varsa ceza YOK (mecbur), birden fazlaysa kullanım cezası
+            double penalty = uygun.Count > 1 ? usage.GetValueOrDefault(jacket.Id, 0) * 0.50 : 0;
+            double adj = score - penalty;
+            if (adj > bestAdj) { bestAdj = adj; best = jacket; }
+        }
+        return best;
+    }
+
     // Çeşitlilik cezalı seçim: her adımda, seçilenlere en çok benzeyeni cezalandırıp
     // en yüksek "düzeltilmiş puana" sahip kombini seçer.
     private static IReadOnlyList<Outfit> SelectDiverse(
         List<Outfit> candidates, int maxResults,
-        List<WardrobeItem> jewelry, OutfitContext context)
+        List<WardrobeItem> jewelry, List<WardrobeItem> outerwear, OutfitContext context)
     {
-        const double penaltyPerUsage = 0.50; // her önceki kullanım için AĞIR ceza
+        const double penaltyPerUsage = 0.50;
         var selected = new List<Outfit>();
         var pool = candidates.ToList();
         var usedJewelry = new HashSet<Guid>();
-        var usageCount = new Dictionary<Guid, int>(); // parça kaç kombinde kullanıldı
+        var jacketUsage = new Dictionary<Guid, int>(); // ceket kullanım sayısı (çeşitlilik)
+        var usageCount = new Dictionary<Guid, int>();
 
         while (selected.Count < maxResults && pool.Count > 0)
         {
@@ -287,6 +334,17 @@ public class RuleBasedRecommender : IOutfitRecommender
 
             if (best is null) break;
             pool.Remove(best);
+
+            // ── CEKET ATA (çeşitlilikli + Season uygun + tek varsa mecbur) ──
+            var jacket = PickOuterwear(best.Items.ToList(), outerwear, jacketUsage, context);
+            if (jacket != null)
+            {
+                var withJacket = best.Items.ToList();
+                withJacket.Add(jacket);
+                var (sc, rs) = ScoreOutfit(withJacket, context);
+                best = new Outfit { Items = withJacket, Score = sc, Reasons = rs };
+                jacketUsage[jacket.Id] = jacketUsage.GetValueOrDefault(jacket.Id, 0) + 1;
+            }
 
             // Takı ata (kullanılmamış)
             var available = jewelry.Where(j => !usedJewelry.Contains(j.Id)).ToList();
