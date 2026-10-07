@@ -314,20 +314,86 @@ public class RuleBasedRecommender : IOutfitRecommender
             Outfit? best = null;
             double bestAdjusted = double.NegativeInfinity;
 
-            foreach (var candidate in pool)
+            // Bir adayın parçaları, verilen kademenin kriterini karşılıyor mu?
+            // maxDist: izin verilen max stil/formalite mesafesi, requireUnderLimit: kullanım<2 şartı
+            bool KademeUygun(Outfit cand, int maxDist, bool requireUnderLimit)
             {
-                // Bu adaydaki her parçanın önceki kullanım sayısı toplamı → ceza
-                double penalty = 0;
-                foreach (var item in candidate.Items)
+                foreach (var item in cand.Items)
                 {
-                    int used = usageCount.GetValueOrDefault(item.Id, 0);
-                    penalty += used * penaltyPerUsage;
+                    // Mevsim/ayakkabı/ceket mesafe kuralından muaf (sadece üst/alt giyim stil/formalite)
+                    bool styleItem = item.Kind == ItemKind.Clothing;
+                    if (styleItem)
+                    {
+                        int sd = ItemStyleDistance(item, context.PreferredStyle);
+                        int fd = ItemFormalityDistance(item, context.TargetFormality);
+                        if (sd > maxDist || fd > maxDist) return false;
+                    }
+                    if (requireUnderLimit && usageCount.GetValueOrDefault(item.Id, 0) >= 2)
+                        return false;
                 }
-                double adjusted = candidate.Score - penalty;
-                if (adjusted > bestAdjusted)
+                return true;
+            }
+
+            // Kademeli dene: (0, limit) → (1, limit) → (sınırsız, cezalı)
+            var kademeler = new (int maxDist, bool underLimit)[]
+            {
+                (0, true),   // Kademe 1: ideal stil/formalite + kullanım<2
+                (1, true),   // Kademe 2: yakın + kullanım<2
+            };
+
+            foreach (var (maxDist, underLimit) in kademeler)
+            {
+
+                foreach (var candidate in pool)
                 {
-                    bestAdjusted = adjusted;
-                    best = candidate;
+                    if (!KademeUygun(candidate, maxDist, underLimit)) continue;
+                    double penalty = 0;
+                    foreach (var item in candidate.Items)
+                        penalty += usageCount.GetValueOrDefault(item.Id, 0) * penaltyPerUsage;
+                    double adjusted = candidate.Score - penalty;
+                    if (adjusted > bestAdjusted)
+                    {
+                        bestAdjusted = adjusted;
+                        best = candidate;
+                    }
+                }
+                if (best != null) break; // bu kademede bulundu, dur
+            }
+
+            // Kademe 3: tercih+yakın stil (mesafe≤1) ama kullanım LİMİTİ YOK, normal çeşitlilik cezası
+            if (best is null)
+            {
+                foreach (var candidate in pool)
+                {
+                    // Mesafe≤1 şartı (kullanım limiti yok — underLimit: false)
+                    if (!KademeUygun(candidate, 1, false)) continue;
+                    double penalty = 0;
+                    foreach (var item in candidate.Items)
+                        penalty += usageCount.GetValueOrDefault(item.Id, 0) * penaltyPerUsage;
+                    double adjusted = candidate.Score - penalty;
+                    if (adjusted > bestAdjusted)
+                    {
+                        bestAdjusted = adjusted;
+                        best = candidate;
+                    }
+                }
+            }
+
+            // Son çare: mesafe≤1'de de bulunamadıysa (hiç uygun yok), herhangi aday (kombin üretilemez durumu olmasın)
+            if (best is null)
+            {
+                foreach (var candidate in pool)
+                {
+                    double penalty = 0;
+                    foreach (var item in candidate.Items)
+                        penalty += usageCount.GetValueOrDefault(item.Id, 0) * penaltyPerUsage;
+                    double adjusted = candidate.Score - penalty;
+                    if (adjusted > bestAdjusted)
+                    {
+                        bestAdjusted = adjusted;
+                        best = candidate;
+
+                    }
                 }
             }
 
@@ -425,7 +491,9 @@ public class RuleBasedRecommender : IOutfitRecommender
             .ToList();
 
         if (levels.Count < 2) return true;
-        return (levels.Max() - levels.Min()) <= 1;
+        // Sadece ABSÜRT farkı ele (Loungewear + Formal gibi, fark ≥3)
+        // Daha küçük farklar (Loungewear+Casual, Casual+SmartCasual) kademeli sistem yönetir
+        return (levels.Max() - levels.Min()) <= 2;
     }
 
     // ── AŞAMA 2: PUANLAMA (0.0 - 1.0 skor + açıklamalar) ──
@@ -624,6 +692,42 @@ public class RuleBasedRecommender : IOutfitRecommender
         }
 
         return best;
+    }
+
+    // ── Stil yakınlık grupları ──
+    private static readonly Dictionary<Style, int> _styleGroup = new()
+    {
+        { Style.Casual, 0 }, { Style.Streetwear, 0 }, { Style.Sporty, 0 },  // gündelik grup
+        { Style.Classic, 1 }, { Style.Minimal, 1 },                          // şık grup
+        { Style.Bohemian, 2 },                                               // ayrı
+    };
+
+    // İki stil arası mesafe: 0=aynı, 1=yakın (aynı grup), 2=uzak (farklı grup)
+    private static int StyleDistance(Style a, Style b)
+    {
+        if (a == b) return 0;
+        int ga = _styleGroup.GetValueOrDefault(a, 9);
+        int gb = _styleGroup.GetValueOrDefault(b, 9);
+        return ga == gb ? 1 : 2;
+    }
+
+    // İki formalite arası mesafe: enum index farkı (sıralı: Loungewear<Casual<...<Formal)
+    private static int FormalityDistance(Formality a, Formality b)
+    {
+        return Math.Abs((int)a - (int)b);
+    }
+
+    // Bir item'ın tercih edilen stil/formaliteye "uzaklığı" (yoksa 0 = nötr)
+    private static int ItemStyleDistance(WardrobeItem item, Style? prefStyle)
+    {
+        if (prefStyle is null || item.Style is null) return 0;
+        return StyleDistance(item.Style.Value, prefStyle.Value);
+    }
+    private static int ItemFormalityDistance(WardrobeItem item, Formality? prefFormality)
+    {
+        if (prefFormality is null || item.Formality is null) return 0;
+
+        return FormalityDistance(item.Formality.Value, prefFormality.Value);
     }
 
     private static double ScoreColor(List<WardrobeItem> items, List<string> reasons)
